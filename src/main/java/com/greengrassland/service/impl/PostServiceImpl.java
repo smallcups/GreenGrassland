@@ -169,6 +169,18 @@ public class PostServiceImpl implements PostService {
         postRepository.delete(post);
     }
 
+    @Override
+    @Transactional
+    public void cancelPost(Long postId, Long userId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BusinessException("活动不存在"));
+        if (!post.getUserId().equals(userId)) {
+            throw new BusinessException("只能取消自己发布的活动");
+        }
+        post.setStatus(com.greengrassland.entity.PostStatus.CANCELLED);
+        postRepository.save(post);
+    }
+
     /**
      * 批量转换为DTO，使用批量查询避免N+1问题
      */
@@ -276,6 +288,7 @@ public class PostServiceImpl implements PostService {
                 .activityTime(post.getActivityTime())
                 .location(post.getLocation())
                 .images(post.getImages())
+                .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())
                 .isRegistered(isRegistered)
@@ -294,9 +307,6 @@ public class PostServiceImpl implements PostService {
         return builder.build();
     }
 
-    /**
-     * 使用预加载的批量数据转换为DTO
-     */
     private PostDTO convertToDTOWithMaps(Post post, Long currentUserId, boolean isRegistered, boolean includeComments,
                                           Map<Long, User> userMap, Map<Long, Long> registrationCountMap,
                                           Map<Long, Long> likeCountMap, Set<Long> likedPostIds,
@@ -331,6 +341,7 @@ public class PostServiceImpl implements PostService {
                 .activityTime(post.getActivityTime())
                 .location(post.getLocation())
                 .images(post.getImages())
+                .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())
                 .isRegistered(isRegistered)

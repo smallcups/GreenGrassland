@@ -2803,6 +2803,7 @@
                             ${post.content ? `<div class="post-content">${post.content}</div>` : ''}
                             <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
                                 <span class="badge badge-primary" style="font-size: 11px; padding: 4px 8px;">${typeName}</span>
+                                ${getStatusBadge(post.status)}
                                 ${post.location ? `<span style="font-size: 12px; color: #999;">📍 ${post.location}</span>` : ''}
                                 ${activityTime !== '未设置' ? `<span style="font-size: 12px; color: #999;">🕐 ${activityTime}</span>` : ''}
                             </div>
@@ -2841,6 +2842,18 @@
         let currentPage = 1;
         let totalPages = 1;
         const pageSize = 12;
+
+        // 活动状态映射
+        function getStatusBadge(status) {
+            if (!status || status === 'RECRUITING') return '';
+            const map = {
+                'FULL': '<span class="badge" style="background:#fef3c7;color:#92400e;font-size:11px;padding:4px 8px;">已满员</span>',
+                'ONGOING': '<span class="badge" style="background:#dbeafe;color:#1e40af;font-size:11px;padding:4px 8px;">进行中</span>',
+                'FINISHED': '<span class="badge" style="background:#f3f4f6;color:#6b7280;font-size:11px;padding:4px 8px;">已结束</span>',
+                'CANCELLED': '<span class="badge" style="background:#fef2f2;color:#dc2626;font-size:11px;padding:4px 8px;">已取消</span>'
+            };
+            return map[status] || '';
+        }
 
         // 帖子图片URL数组
         let postImageUrls = [];

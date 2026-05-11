@@ -45,4 +45,9 @@ public interface PostService {
      * 删除活动（只能删除自己的）
      */
     void deletePost(Long postId, Long userId);
+
+    /**
+     * 取消活动
+     */
+    void cancelPost(Long postId, Long userId);
 }

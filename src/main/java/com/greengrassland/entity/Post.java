@@ -66,6 +66,11 @@ public class Post {
     @Column(nullable = false, length = 200)
     private String location;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private PostStatus status = PostStatus.RECRUITING;
+
     /**
      * 图片URL（多个图片用逗号分隔）
      */

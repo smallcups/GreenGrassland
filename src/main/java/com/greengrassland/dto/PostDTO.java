@@ -29,7 +29,8 @@ public class PostDTO {
     private Integer currentPeople;
     private LocalDateTime activityTime;
     private String location;
-    private String images; // 图片URL列表（多个图片用逗号分隔）
+    private String images;
+    private com.greengrassland.entity.PostStatus status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private Boolean isRegistered; // 当前用户是否已报名

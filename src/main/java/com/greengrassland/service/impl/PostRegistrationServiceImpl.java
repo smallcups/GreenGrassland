@@ -44,6 +44,12 @@ public class PostRegistrationServiceImpl implements PostRegistrationService {
             throw new BusinessException("活动报名人数已满");
         }
 
+        // 检查活动状态
+        if (post.getStatus() != com.greengrassland.entity.PostStatus.RECRUITING &&
+            post.getStatus() != com.greengrassland.entity.PostStatus.FULL) {
+            throw new BusinessException("该活动已无法报名");
+        }
+
         // 创建报名记录
         PostRegistration registration = PostRegistration.builder()
                 .postId(postId)
@@ -51,18 +57,32 @@ public class PostRegistrationServiceImpl implements PostRegistrationService {
                 .build();
 
         registrationRepository.save(registration);
+
+        // 满员自动切换状态
+        if (currentCount + 1 >= post.getMaxPeople()) {
+            post.setStatus(com.greengrassland.entity.PostStatus.FULL);
+            postRepository.save(post);
+        }
     }
 
     @Override
     @Transactional
     public void cancelRegistration(Long postId, Long userId) {
-        // 查找报名记录
         Optional<PostRegistration> registrationOpt = registrationRepository.findByPostIdAndUserId(postId, userId);
         if (registrationOpt.isEmpty()) {
             throw new BusinessException("您尚未报名该活动");
         }
 
-        // 删除报名记录
         registrationRepository.delete(registrationOpt.get());
+
+        // 满员取消后恢复招募
+        Post post = postRepository.findById(postId).orElse(null);
+        if (post != null && post.getStatus() == com.greengrassland.entity.PostStatus.FULL) {
+            long currentCount = registrationRepository.countByPostId(postId);
+            if (currentCount < post.getMaxPeople()) {
+                post.setStatus(com.greengrassland.entity.PostStatus.RECRUITING);
+                postRepository.save(post);
+            }
+        }
     }
 }

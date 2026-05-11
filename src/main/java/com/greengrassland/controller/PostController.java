@@ -130,4 +130,18 @@ public class PostController {
         postService.deletePost(id, userId);
         return ResponseEntity.ok(ApiResponse.success());
     }
+
+    /**
+     * 取消活动
+     */
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<?>> cancelPost(@PathVariable Long id,
+                                                      HttpServletRequest request) {
+        Long userId = SessionConfig.getCurrentUserId(request);
+        if (userId == null) {
+            return ResponseEntity.ok(ApiResponse.error("请先登录"));
+        }
+        postService.cancelPost(id, userId);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 }
