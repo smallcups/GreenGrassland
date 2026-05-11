@@ -14,6 +14,7 @@ import com.greengrassland.repository.PostRepository;
 import com.greengrassland.repository.UserRepository;
 import com.greengrassland.service.GroupChatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,7 @@ public class GroupChatServiceImpl implements GroupChatService {
     private final PostRepository postRepository;
     private final PostRegistrationRepository registrationRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -103,7 +105,10 @@ public class GroupChatServiceImpl implements GroupChatService {
         room.setLastMessageTime(chat.getCreateTime());
         groupChatRoomRepository.save(room);
 
-        return convertToChatDTO(chat);
+        GroupChatDTO dto = convertToChatDTO(chat);
+        messagingTemplate.convertAndSend("/topic/group.room." + room.getId(), dto);
+
+        return dto;
     }
 
     @Override

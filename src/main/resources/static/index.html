@@ -1555,6 +1555,10 @@
 
         .chat-list-item-name { font-weight: 700; flex: 1; font-size: 14px; }
 
+        .online-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 6px; flex-shrink: 0; }
+        .online-dot.online { background: #10b981; box-shadow: 0 0 4px rgba(16,185,129,0.5); }
+        .online-dot.offline { background: #d1d5db; }
+
         .chat-list-item-unread {
             background: var(--primary);
             color: white;
@@ -1830,6 +1834,8 @@
             font-size: 18px;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 </head>
 <body>
     <div class="header">
@@ -3774,6 +3780,80 @@
             }
         }
 
+        // WebSocket
+        let stompClient = null;
+        let wsSubscription = null;
+        let onlineSubscription = null;
+        let wsConnected = false;
+        let onlineUsers = {};
+
+        function connectWebSocket() {
+            if (stompClient && stompClient.connected) return;
+            const socket = new SockJS('/ws');
+            stompClient = new StompJs.Client({
+                webSocketFactory: () => socket,
+                debug: function() {},
+                onConnect: function() {
+                    wsConnected = true;
+                    onlineSubscription = stompClient.subscribe('/topic/online.status', function(msg) {
+                        const data = JSON.parse(msg.body);
+                        if (data.userId !== undefined) {
+                            onlineUsers[data.userId] = data.online;
+                            updateOnlineIndicators();
+                        }
+                    });
+                    const currentUserId = getCurrentUserId();
+                    if (currentUserId) {
+                        stompClient.publish({destination: '/app/online.ping', body: JSON.stringify({userId: currentUserId})});
+                    }
+                    if (currentChatRoomId && currentChatRoomType) {
+                        subscribeToRoom(currentChatRoomId, currentChatRoomType);
+                    }
+                },
+                onDisconnect: function() {
+                    wsConnected = false;
+                    setTimeout(connectWebSocket, 3000);
+                }
+            });
+            stompClient.activate();
+        }
+
+        function updateOnlineIndicators() {
+            document.querySelectorAll('.online-dot').forEach(dot => {
+                const uid = parseInt(dot.dataset.userId);
+                dot.className = 'online-dot ' + (onlineUsers[uid] ? 'online' : 'offline');
+            });
+        }
+
+        function subscribeToRoom(roomId, type) {
+            if (wsSubscription) { wsSubscription.unsubscribe(); wsSubscription = null; }
+            if (!stompClient || !stompClient.connected) return;
+            const topic = type === 'group' ? '/topic/group.room.' + roomId : '/topic/chat.room.' + roomId;
+            wsSubscription = stompClient.subscribe(topic, function(msg) {
+                const chat = JSON.parse(msg.body);
+                if (currentChatRoomId === roomId && currentChatRoomType === type) {
+                    appendChatMessage(chat, type);
+                }
+                loadMessages();
+            });
+        }
+
+        function appendChatMessage(chat, type) {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+            const currentUserId = getCurrentUserId();
+            const isMe = chat.senderId === currentUserId;
+            const time = chat.createTime ? new Date(chat.createTime).toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'}) : '';
+            const msgHtml = `
+                <div class="chat-message ${isMe ? 'sent' : 'received'}">
+                    ${!isMe ? `<div class="chat-message-sender">${chat.senderNickname}</div>` : ''}
+                    <div class="chat-bubble">${escapeHtml(chat.content)}</div>
+                    <div class="chat-time">${time}</div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', msgHtml);
+            container.scrollTop = container.scrollHeight;
+        }
+
         // 消息相关变量
         let currentChatRoomId = null;
         let currentChatRoomType = null; // 'private' or 'group'
@@ -3838,7 +3918,7 @@
                              data-type="private">
                             <div class="chat-list-item-header">
                                 <img src="${avatar}" alt="头像" class="chat-list-item-avatar" onerror="this.src='/images/default-avatar.svg'">
-                                <span class="chat-list-item-name">${item.otherUserNickname}</span>
+                                <span class="chat-list-item-name">${item.otherUserNickname}<span class="online-dot offline" data-user-id="${otherUserId}"></span></span>
                                 ${item.unreadCount > 0 ? `<span class="chat-list-item-unread">${item.unreadCount}</span>` : ''}
                             </div>
                             <div class="chat-list-item-last-message">
@@ -4010,15 +4090,7 @@
 
         // 开始轮询聊天消息
         function startChatPolling(roomId) {
-            if (chatPollInterval) {
-                clearInterval(chatPollInterval);
-            }
-            chatPollInterval = setInterval(() => {
-                if (currentChatRoomId === roomId && currentChatRoomType === 'private') {
-                    loadChatMessages(roomId);
-                    loadMessages();
-                }
-            }, 3000); // 每3秒刷新一次
+            subscribeToRoom(roomId, 'private');
         }
 
         // 加载群聊消息
@@ -4122,15 +4194,7 @@
 
         // 开始轮询群聊消息
         function startGroupChatPolling(roomId) {
-            if (groupChatPollInterval) {
-                clearInterval(groupChatPollInterval);
-            }
-            groupChatPollInterval = setInterval(() => {
-                if (currentChatRoomId === roomId && currentChatRoomType === 'group') {
-                    loadGroupChatMessages(roomId);
-                    loadMessages();
-                }
-            }, 3000); // 每3秒刷新一次
+            subscribeToRoom(roomId, 'group');
         }
 
         // 通知相关变量
@@ -4298,6 +4362,7 @@
         // 页面加载时检查登录状态
         window.onload = function() {
             updateUserInfo();
+            connectWebSocket();
         };
     </script>
 </body>
