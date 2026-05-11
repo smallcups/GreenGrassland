@@ -25,6 +25,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     List<Post> findByUserIdOrderByCreateTimeDesc(Long userId);
 
     /**
+     * 统计用户发布的活动数
+     */
+    long countByUserId(Long userId);
+
+    /**
      * 查找所有活动，按创建时间倒序
      */
     List<Post> findAllByOrderByCreateTimeDesc();

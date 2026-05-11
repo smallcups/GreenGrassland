@@ -6,6 +6,10 @@ import com.greengrassland.dto.UserRegisterDTO;
 import com.greengrassland.dto.UserUpdateDTO;
 import com.greengrassland.entity.User;
 import com.greengrassland.exception.BusinessException;
+import com.greengrassland.repository.PostFavoriteRepository;
+import com.greengrassland.repository.PostLikeRepository;
+import com.greengrassland.repository.PostRepository;
+import com.greengrassland.repository.UserFollowRepository;
 import com.greengrassland.repository.UserRepository;
 import com.greengrassland.service.SensitiveWordFilter;
 import com.greengrassland.service.UserService;
@@ -24,6 +28,10 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final PostRepository postRepository;
+    private final PostLikeRepository postLikeRepository;
+    private final PostFavoriteRepository postFavoriteRepository;
+    private final UserFollowRepository userFollowRepository;
     private final SensitiveWordFilter sensitiveWordFilter;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -117,21 +125,35 @@ public class UserServiceImpl implements UserService {
         if (updateDTO.getEmail() != null && !updateDTO.getEmail().trim().isEmpty()) {
             user.setEmail(updateDTO.getEmail().trim());
         }
+        if (updateDTO.getBio() != null) {
+            user.setBio(updateDTO.getBio().trim());
+        }
+        if (updateDTO.getInterestTags() != null) {
+            user.setInterestTags(updateDTO.getInterestTags().trim());
+        }
 
         user = userRepository.save(user);
         return convertToDTO(user);
     }
 
     /**
-     * 转换为DTO
+     * 转换为DTO（含统计）
      */
     private UserDTO convertToDTO(User user) {
+        Long userId = user.getId();
         return UserDTO.builder()
-                .id(user.getId())
+                .id(userId)
                 .username(user.getUsername())
                 .nickname(user.getNickname())
                 .email(user.getEmail())
                 .avatar(user.getAvatar())
+                .bio(user.getBio())
+                .interestTags(user.getInterestTags())
+                .postCount(postRepository.countByUserId(userId))
+                .likeCount(postLikeRepository.countByPostUserId(userId))
+                .favoriteCount(postFavoriteRepository.countByPostUserId(userId))
+                .followerCount(userFollowRepository.countByFollowingId(userId))
+                .followingCount(userFollowRepository.countByFollowerId(userId))
                 .createTime(user.getCreateTime())
                 .build();
     }

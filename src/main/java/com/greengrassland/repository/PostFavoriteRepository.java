@@ -52,4 +52,10 @@ public interface PostFavoriteRepository extends JpaRepository<PostFavorite, Long
      * 根据用户ID查找该用户的所有收藏记录
      */
     java.util.List<PostFavorite> findByUserIdOrderByCreateTimeDesc(Long userId);
+
+    /**
+     * 统计用户发布的活动收到的总收藏数
+     */
+    @Query("SELECT COUNT(pf) FROM PostFavorite pf JOIN Post p ON pf.postId = p.id WHERE p.userId = :userId")
+    long countByPostUserId(@Param("userId") Long userId);
 }
