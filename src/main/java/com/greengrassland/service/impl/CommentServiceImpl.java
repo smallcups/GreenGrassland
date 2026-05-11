@@ -10,6 +10,7 @@ import com.greengrassland.repository.PostRepository;
 import com.greengrassland.repository.UserRepository;
 import com.greengrassland.service.CommentService;
 import com.greengrassland.service.NotificationService;
+import com.greengrassland.service.SensitiveWordFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,10 +30,14 @@ public class CommentServiceImpl implements CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final SensitiveWordFilter sensitiveWordFilter;
 
     @Override
     @Transactional
     public CommentDTO createComment(Long userId, CommentCreateDTO createDTO) {
+        String matched = sensitiveWordFilter.findFirstMatch(createDTO.getContent());
+        if (matched != null) throw new BusinessException("评论包含敏感词");
+
         // 检查活动是否存在
         Optional<Post> postOpt = postRepository.findById(createDTO.getPostId());
         if (postOpt.isEmpty()) {

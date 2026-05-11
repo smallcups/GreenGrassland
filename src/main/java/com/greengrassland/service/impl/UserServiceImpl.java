@@ -7,6 +7,7 @@ import com.greengrassland.dto.UserUpdateDTO;
 import com.greengrassland.entity.User;
 import com.greengrassland.exception.BusinessException;
 import com.greengrassland.repository.UserRepository;
+import com.greengrassland.service.SensitiveWordFilter;
 import com.greengrassland.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,11 +24,20 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final SensitiveWordFilter sensitiveWordFilter;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
     @Transactional
     public UserDTO register(UserRegisterDTO registerDTO) {
+        // 敏感词检查
+        String matched = sensitiveWordFilter.findFirstMatch(registerDTO.getUsername());
+        if (matched != null) throw new BusinessException("用户名包含敏感词");
+        if (registerDTO.getNickname() != null) {
+            matched = sensitiveWordFilter.findFirstMatch(registerDTO.getNickname());
+            if (matched != null) throw new BusinessException("昵称包含敏感词");
+        }
+
         // 检查用户名是否已存在
         if (userRepository.existsByUsername(registerDTO.getUsername())) {
             throw new BusinessException("用户名已存在");

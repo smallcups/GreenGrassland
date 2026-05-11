@@ -17,6 +17,7 @@ import com.greengrassland.service.CommentService;
 import com.greengrassland.service.PostFavoriteService;
 import com.greengrassland.service.PostLikeService;
 import com.greengrassland.service.PostService;
+import com.greengrassland.service.SensitiveWordFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -48,10 +49,18 @@ public class PostServiceImpl implements PostService {
     private final PostLikeService likeService;
     private final PostFavoriteService favoriteService;
     private final CommentService commentService;
+    private final SensitiveWordFilter sensitiveWordFilter;
 
     @Override
     @Transactional
     public PostDTO createPost(Long userId, PostCreateDTO createDTO) {
+        String matched = sensitiveWordFilter.findFirstMatch(createDTO.getTitle());
+        if (matched != null) throw new BusinessException("标题包含敏感词");
+        if (createDTO.getContent() != null) {
+            matched = sensitiveWordFilter.findFirstMatch(createDTO.getContent());
+            if (matched != null) throw new BusinessException("内容包含敏感词");
+        }
+
         Post post = Post.builder()
                 .userId(userId)
                 .title(createDTO.getTitle())
