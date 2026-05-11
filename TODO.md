@@ -22,8 +22,8 @@
 ## 二、实时社交体验
 
 ### 2.1 WebSocket 聊天
-- [ ] Spring WebSocket + STOMP 替换轮询
-- [ ] 在线状态显示（绿色圆点）
+- [x] Spring WebSocket + STOMP 替换轮询
+- [x] 在线状态显示（绿色圆点）
 - [ ] 消息已读/未读状态实时同步
 - [ ] 正在输入提示
 - [ ] 离线消息推送

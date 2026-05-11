@@ -1,6 +1,7 @@
 package com.greengrassland.repository;
 
 import com.greengrassland.entity.Post;
+import com.greengrassland.entity.PostStatus;
 import com.greengrassland.entity.PostType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -103,4 +105,12 @@ public interface PostRepository extends JpaRepository<Post, Long> {
                                           @Param("postType") String postType,
                                           @Param("location") String location,
                                           Pageable pageable);
+
+    /**
+     * 查找活动已过期但仍处于活跃状态的帖子
+     */
+    @Query("SELECT p FROM Post p WHERE p.status IN :statuses AND p.activityTime IS NOT NULL AND p.activityTime < :now")
+    Page<Post> findByStatusInAndActivityTimeBefore(@Param("statuses") List<PostStatus> statuses,
+                                                     @Param("now") LocalDateTime now,
+                                                     Pageable pageable);
 }
