@@ -51,10 +51,12 @@ public class PostController {
             @RequestParam(required = false) String sortOrder,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer pageSize,
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng,
+            @RequestParam(required = false) Double maxDistance,
             HttpServletRequest request) {
         Long userId = SessionConfig.getCurrentUserId(request);
 
-        // 始终使用分页接口
         PostSearchDTO searchDTO = PostSearchDTO.builder()
                 .keyword(keyword != null && !keyword.isEmpty() ? keyword : null)
                 .location(location != null && !location.isEmpty() ? location : null)
@@ -63,6 +65,9 @@ public class PostController {
                 .sortOrder(sortOrder != null ? sortOrder : "DESC")
                 .page(page != null ? page : 1)
                 .pageSize(pageSize != null ? pageSize : 12)
+                .userLat(lat)
+                .userLng(lng)
+                .maxDistance(maxDistance)
                 .build();
         return ResponseEntity.ok(ApiResponse.success(postService.searchPosts(searchDTO, userId)));
     }

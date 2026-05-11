@@ -30,6 +30,7 @@ import com.greengrassland.dto.PageDTO;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,6 +70,8 @@ public class PostServiceImpl implements PostService {
                 .maxPeople(createDTO.getMaxPeople())
                 .activityTime(createDTO.getActivityTime())
                 .location(createDTO.getLocation())
+                .latitude(createDTO.getLatitude())
+                .longitude(createDTO.getLongitude())
                 .images(createDTO.getImages())
                 .build();
 
@@ -110,23 +113,71 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        Page<Post> postPage;
-        boolean hasFilter = keyword != null || location != null || postType != null;
-        if (hasFilter) {
-            postPage = postRepository.searchPostsWithLocation(keyword, location, postType, pageable);
+        List<PostDTO> dtos;
+        long totalElements;
+        int totalPages;
+        boolean hasNext;
+        boolean hasPrevious;
+        int pageNum;
+
+        // 距离搜索
+        if (searchDTO.getUserLat() != null && searchDTO.getUserLng() != null) {
+            double maxDist = searchDTO.getMaxDistance() != null ? searchDTO.getMaxDistance() : 50.0;
+            org.springframework.data.domain.Pageable plainPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+            Page<Object[]> distPage = postRepository.searchPostsByDistance(
+                    searchDTO.getUserLat(), searchDTO.getUserLng(), maxDist,
+                    keyword, postType != null ? postType.name() : null, location, plainPageable);
+            List<Object[]> rows = distPage.getContent();
+            List<Long> ids = new ArrayList<>();
+            Map<Long, Double> distanceMap = new LinkedHashMap<>();
+            for (Object[] row : rows) {
+                Long postId = ((Number) row[0]).longValue();
+                Double distance = ((Number) row[1]).doubleValue();
+                ids.add(postId);
+                distanceMap.put(postId, Math.round(distance * 10.0) / 10.0);
+            }
+            List<Post> posts = ids.isEmpty() ? List.of() : postRepository.findAllById(ids);
+            Map<Long, Post> postMap = new HashMap<>();
+            for (Post p : posts) postMap.put(p.getId(), p);
+            dtos = new ArrayList<>();
+            for (Long id : ids) {
+                Post post = postMap.get(id);
+                if (post == null) continue;
+                boolean isRegistered = currentUserId != null
+                        && registrationRepository.findPostIdsByUserId(currentUserId).contains(post.getId());
+                PostDTO dto = convertToDTO(post, currentUserId, isRegistered, false);
+                dto.setDistance(distanceMap.get(id));
+                dtos.add(dto);
+            }
+            totalElements = distPage.getTotalElements();
+            totalPages = distPage.getTotalPages();
+            hasNext = distPage.hasNext();
+            hasPrevious = distPage.hasPrevious();
+            pageNum = distPage.getNumber() + 1;
         } else {
-            postPage = postRepository.findAll(pageable);
+            Page<Post> postPage;
+            boolean hasFilter = keyword != null || location != null || postType != null;
+            if (hasFilter) {
+                postPage = postRepository.searchPostsWithLocation(keyword, location, postType, pageable);
+            } else {
+                postPage = postRepository.findAll(pageable);
+            }
+            dtos = batchConvertToDTOs(postPage.getContent(), currentUserId, false);
+            totalElements = postPage.getTotalElements();
+            totalPages = postPage.getTotalPages();
+            hasNext = postPage.hasNext();
+            hasPrevious = postPage.hasPrevious();
+            pageNum = postPage.getNumber() + 1;
         }
 
-        List<PostDTO> dtos = batchConvertToDTOs(postPage.getContent(), currentUserId, false);
         return PageDTO.<PostDTO>builder()
                 .content(dtos)
-                .page(postPage.getNumber() + 1)
-                .pageSize(postPage.getSize())
-                .totalElements(postPage.getTotalElements())
-                .totalPages(postPage.getTotalPages())
-                .hasNext(postPage.hasNext())
-                .hasPrevious(postPage.hasPrevious())
+                .page(pageNum)
+                .pageSize(pageable.getPageSize())
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .hasNext(hasNext)
+                .hasPrevious(hasPrevious)
                 .build();
     }
 
@@ -297,6 +348,8 @@ public class PostServiceImpl implements PostService {
                 .activityTime(post.getActivityTime())
                 .location(post.getLocation())
                 .images(post.getImages())
+                .latitude(post.getLatitude())
+                .longitude(post.getLongitude())
                 .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())
@@ -350,6 +403,8 @@ public class PostServiceImpl implements PostService {
                 .activityTime(post.getActivityTime())
                 .location(post.getLocation())
                 .images(post.getImages())
+                .latitude(post.getLatitude())
+                .longitude(post.getLongitude())
                 .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())

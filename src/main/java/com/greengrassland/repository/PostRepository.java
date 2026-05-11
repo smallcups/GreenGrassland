@@ -72,4 +72,35 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE " +
            "(:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%'))")
     Page<Post> searchPostsByLocation(@Param("location") String location, Pageable pageable);
+
+    /**
+     * 按距离搜索（Haversine公式），返回帖子ID和距离
+     */
+    @Query(value = "SELECT p.id AS postId, " +
+           "(6371 * acos(cos(radians(:userLat)) * cos(radians(p.latitude)) * " +
+           "cos(radians(p.longitude) - radians(:userLng)) + sin(radians(:userLat)) * " +
+           "sin(radians(p.latitude)))) AS distance " +
+           "FROM post p " +
+           "WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL " +
+           "AND (:keyword IS NULL OR :keyword = '' OR p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%')) " +
+           "AND (:postType IS NULL OR p.type = :postType) " +
+           "AND (:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%')) " +
+           "HAVING distance < :maxDistance " +
+           "ORDER BY distance ASC",
+           countQuery = "SELECT count(*) FROM post p " +
+           "WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL " +
+           "AND (:keyword IS NULL OR :keyword = '' OR p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%')) " +
+           "AND (:postType IS NULL OR p.type = :postType) " +
+           "AND (:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%')) " +
+           "AND (6371 * acos(cos(radians(:userLat)) * cos(radians(p.latitude)) * " +
+           "cos(radians(p.longitude) - radians(:userLng)) + sin(radians(:userLat)) * " +
+           "sin(radians(p.latitude)))) < :maxDistance",
+           nativeQuery = true)
+    Page<Object[]> searchPostsByDistance(@Param("userLat") Double userLat,
+                                          @Param("userLng") Double userLng,
+                                          @Param("maxDistance") Double maxDistance,
+                                          @Param("keyword") String keyword,
+                                          @Param("postType") String postType,
+                                          @Param("location") String location,
+                                          Pageable pageable);
 }

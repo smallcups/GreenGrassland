@@ -37,11 +37,15 @@ public class FileUploadController {
      * 上传头像
      */
     @PostMapping("/avatar")
-    public ResponseEntity<ApiResponse<String>> uploadAvatar(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<ApiResponse<String>> uploadAvatar(@RequestParam(value = "file", required = false) MultipartFile file,
                                                              HttpServletRequest request) {
         Long userId = SessionConfig.getCurrentUserId(request);
         if (userId == null) {
             return ResponseEntity.ok(ApiResponse.error("请先登录"));
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.error("请选择要上传的文件"));
         }
 
         // 验证文件类型
@@ -87,11 +91,15 @@ public class FileUploadController {
     }
 
     @PostMapping("/post-image")
-    public ResponseEntity<ApiResponse<String>> uploadPostImage(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<ApiResponse<String>> uploadPostImage(@RequestParam(value = "file", required = false) MultipartFile file,
                                                                 HttpServletRequest request) {
         Long userId = SessionConfig.getCurrentUserId(request);
         if (userId == null) {
             return ResponseEntity.ok(ApiResponse.error("请先登录"));
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.error("请选择要上传的文件"));
         }
 
         // 验证文件类型

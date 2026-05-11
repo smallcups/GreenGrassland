@@ -24,6 +24,10 @@ public class PostSearchDTO {
      */
     private String location;
 
+    private Double userLat;
+    private Double userLng;
+    private Double maxDistance;
+
     /**
      * 活动类型
      */

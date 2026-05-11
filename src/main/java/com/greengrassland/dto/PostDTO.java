@@ -30,6 +30,9 @@ public class PostDTO {
     private LocalDateTime activityTime;
     private String location;
     private String images;
+    private Double latitude;
+    private Double longitude;
+    private Double distance;
     private com.greengrassland.entity.PostStatus status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
