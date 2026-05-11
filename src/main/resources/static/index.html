@@ -625,6 +625,59 @@
 
         .filter-select:focus { border-color: var(--primary); }
 
+        .search-highlight {
+            background: #fef08a;
+            color: #854d0e;
+            padding: 1px 2px;
+            border-radius: 2px;
+            font-weight: 600;
+        }
+
+        .search-history {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            align-items: center;
+        }
+
+        .search-history-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-right: 2px;
+            white-space: nowrap;
+        }
+
+        .search-history-chip {
+            padding: 4px 10px;
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition);
+            white-space: nowrap;
+        }
+
+        .search-history-chip:hover {
+            background: var(--primary-bg);
+            border-color: var(--primary);
+            color: var(--primary-dark);
+        }
+
+        .search-history-clear {
+            padding: 4px 8px;
+            background: none;
+            border: none;
+            font-size: 11px;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .search-history-clear:hover { color: #ef4444; }
+
         .filter-actions {
             display: flex;
             gap: 8px;
@@ -1868,10 +1921,11 @@
             <div id="posts" class="tab-content">
                 <div class="search-container">
                     <div class="search-box-wrapper">
-                        <input type="text" id="searchKeyword" class="search-input" placeholder="🔍  搜索感兴趣的活动..." onkeypress="if(event.key==='Enter') searchPosts()">
+                        <input type="text" id="searchKeyword" class="search-input" placeholder="🔍  搜索感兴趣的活动..." onkeypress="if(event.key==='Enter') searchPosts()" onfocus="renderSearchHistory()">
                         <button class="search-btn" onclick="searchPosts()">🔍</button>
                         <button class="filter-btn" onclick="toggleFilterPanel()">⚙ 筛选</button>
                     </div>
+                    <div id="searchHistory" class="search-history" style="display:none;"></div>
                     <div id="filterPanel" class="filter-panel hidden">
                         <div class="filter-row">
                             <label>位置</label>
@@ -2428,6 +2482,8 @@
             const type = document.getElementById('searchType').value;
             const sortBy = document.getElementById('searchSortBy').value;
             const sortOrder = document.getElementById('searchSortOrder').value;
+            currentSearchKeyword = keyword;
+            if (keyword) saveSearchHistory(keyword);
 
             try {
                 const params = new URLSearchParams();
@@ -2506,6 +2562,7 @@
             document.getElementById('searchType').value = '';
             document.getElementById('searchSortBy').value = 'createTime';
             document.getElementById('searchSortOrder').value = 'DESC';
+            currentSearchKeyword = '';
             loadPosts();
         }
 
@@ -2823,8 +2880,8 @@
 
                         <!-- 内容区域 -->
                         <div class="post-body" onclick="event.stopPropagation()">
-                            <div class="post-title">${post.title}</div>
-                            ${post.content ? `<div class="post-content">${post.content}</div>` : ''}
+                            <div class="post-title">${highlightText(post.title, currentSearchKeyword)}</div>
+                            ${post.content ? `<div class="post-content">${highlightText(post.content, currentSearchKeyword)}</div>` : ''}
                             <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
                                 <span class="badge badge-primary" style="font-size: 11px; padding: 4px 8px;">${typeName}</span>
                                 ${getStatusBadge(post.status)}
@@ -2878,6 +2935,48 @@
             }
         }
         requestUserLocation();
+
+        // 搜索历史
+        const SEARCH_HISTORY_KEY = 'ggl_search_history';
+        const MAX_SEARCH_HISTORY = 10;
+
+        function getSearchHistory() {
+            try {
+                return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY)) || [];
+            } catch (e) { return []; }
+        }
+
+        function saveSearchHistory(keyword) {
+            let list = getSearchHistory();
+            list = list.filter(k => k !== keyword);
+            list.unshift(keyword);
+            if (list.length > MAX_SEARCH_HISTORY) list = list.slice(0, MAX_SEARCH_HISTORY);
+            localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(list));
+        }
+
+        function renderSearchHistory() {
+            const container = document.getElementById('searchHistory');
+            const list = getSearchHistory();
+            if (list.length === 0) { container.style.display = 'none'; return; }
+            container.style.display = 'flex';
+            container.innerHTML =
+                '<span class="search-history-label">最近搜索:</span>' +
+                list.map(k => `<span class="search-history-chip" onclick="searchFromHistory('${k.replace(/'/g, "\\'")}')">${escapeHtml(k)}</span>`).join('') +
+                '<button class="search-history-clear" onclick="clearSearchHistory()">清除</button>';
+        }
+
+        function searchFromHistory(keyword) {
+            document.getElementById('searchKeyword').value = keyword;
+            searchPosts();
+        }
+
+        function clearSearchHistory() {
+            localStorage.removeItem(SEARCH_HISTORY_KEY);
+            document.getElementById('searchHistory').style.display = 'none';
+        }
+
+        // 搜索关键词（用于高亮）
+        let currentSearchKeyword = '';
 
         // 分页状态
         let currentPage = 1;
@@ -3368,6 +3467,14 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function highlightText(text, keyword) {
+            if (!keyword || !text) return escapeHtml(text);
+            const escaped = escapeHtml(text);
+            const escapedKeyword = escapeHtml(keyword);
+            const regex = new RegExp('(' + escapedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+            return escaped.replace(regex, '<mark class="search-highlight">$1</mark>');
         }
 
         // 从详情页收藏/取消收藏
