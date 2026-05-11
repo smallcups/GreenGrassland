@@ -22,9 +22,9 @@ public interface PostService {
     List<PostDTO> getPostList(Long currentUserId);
 
     /**
-     * 搜索活动
+     * 搜索活动（带分页）
      */
-    List<PostDTO> searchPosts(PostSearchDTO searchDTO, Long currentUserId);
+    com.greengrassland.dto.PageDTO<PostDTO> searchPosts(PostSearchDTO searchDTO, Long currentUserId);
 
     /**
      * 获取活动详情

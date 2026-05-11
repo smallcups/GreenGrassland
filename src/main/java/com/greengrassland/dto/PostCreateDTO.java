@@ -28,6 +28,7 @@ public class PostCreateDTO {
 
     private LocalDateTime activityTime;
 
+    @NotBlank(message = "活动地点不能为空")
     private String location;
 
     /**

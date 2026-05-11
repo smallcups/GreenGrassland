@@ -43,8 +43,9 @@ public class PostController {
      * 获取活动列表（支持搜索和排序）
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PostDTO>>> getPostList(
+    public ResponseEntity<ApiResponse<?>> getPostList(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String location,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String sortBy,
             @RequestParam(required = false) String sortOrder,
@@ -52,35 +53,28 @@ public class PostController {
             @RequestParam(required = false) Integer pageSize,
             HttpServletRequest request) {
         Long userId = SessionConfig.getCurrentUserId(request);
-        
-        // 如果有搜索参数，使用搜索接口
-        if (keyword != null || type != null || sortBy != null || sortOrder != null || page != null || pageSize != null) {
-            PostSearchDTO searchDTO = PostSearchDTO.builder()
-                    .keyword(keyword)
-                    .type(type)
-                    .sortBy(sortBy)
-                    .sortOrder(sortOrder)
-                    .page(page)
-                    .pageSize(pageSize)
-                    .build();
-            List<PostDTO> posts = postService.searchPosts(searchDTO, userId);
-            return ResponseEntity.ok(ApiResponse.success(posts));
-        }
-        
-        // 否则使用默认列表
-        List<PostDTO> posts = postService.getPostList(userId);
-        return ResponseEntity.ok(ApiResponse.success(posts));
+
+        // 始终使用分页接口
+        PostSearchDTO searchDTO = PostSearchDTO.builder()
+                .keyword(keyword != null && !keyword.isEmpty() ? keyword : null)
+                .location(location != null && !location.isEmpty() ? location : null)
+                .type(type != null && !type.isEmpty() ? type : null)
+                .sortBy(sortBy != null ? sortBy : "createTime")
+                .sortOrder(sortOrder != null ? sortOrder : "DESC")
+                .page(page != null ? page : 1)
+                .pageSize(pageSize != null ? pageSize : 12)
+                .build();
+        return ResponseEntity.ok(ApiResponse.success(postService.searchPosts(searchDTO, userId)));
     }
 
     /**
-     * 搜索活动
+     * 搜索活动（POST 分页）
      */
     @PostMapping("/search")
-    public ResponseEntity<ApiResponse<List<PostDTO>>> searchPosts(@RequestBody PostSearchDTO searchDTO,
+    public ResponseEntity<ApiResponse<com.greengrassland.dto.PageDTO<PostDTO>>> searchPosts(@RequestBody PostSearchDTO searchDTO,
                                                                     HttpServletRequest request) {
         Long userId = SessionConfig.getCurrentUserId(request);
-        List<PostDTO> posts = postService.searchPosts(searchDTO, userId);
-        return ResponseEntity.ok(ApiResponse.success(posts));
+        return ResponseEntity.ok(ApiResponse.success(postService.searchPosts(searchDTO, userId)));
     }
 
     /**

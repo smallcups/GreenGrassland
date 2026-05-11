@@ -63,7 +63,7 @@ public class Post {
     /**
      * 活动地点
      */
-    @Column(length = 200)
+    @Column(nullable = false, length = 200)
     private String location;
 
     /**

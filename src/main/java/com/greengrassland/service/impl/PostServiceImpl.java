@@ -25,6 +25,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.greengrassland.dto.PageDTO;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -73,7 +75,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public List<PostDTO> searchPosts(PostSearchDTO searchDTO, Long currentUserId) {
+    public PageDTO<PostDTO> searchPosts(PostSearchDTO searchDTO, Long currentUserId) {
         String sortBy = searchDTO.getSortBy() != null ? searchDTO.getSortBy() : "createTime";
         String sortOrder = searchDTO.getSortOrder() != null && searchDTO.getSortOrder().equalsIgnoreCase("ASC") ? "ASC" : "DESC";
 
@@ -86,6 +88,8 @@ public class PostServiceImpl implements PostService {
 
         String keyword = (searchDTO.getKeyword() != null && !searchDTO.getKeyword().trim().isEmpty())
                 ? searchDTO.getKeyword().trim() : null;
+        String location = (searchDTO.getLocation() != null && !searchDTO.getLocation().trim().isEmpty())
+                ? searchDTO.getLocation().trim() : null;
         PostType postType = null;
         String typeStr = searchDTO.getType();
 
@@ -98,17 +102,23 @@ public class PostServiceImpl implements PostService {
         }
 
         Page<Post> postPage;
-        if (keyword != null && postType != null) {
-            postPage = postRepository.searchPosts(keyword, postType, pageable);
-        } else if (keyword != null) {
-            postPage = postRepository.searchPostsByKeyword(keyword, pageable);
-        } else if (postType != null) {
-            postPage = postRepository.findByTypeOrderByCreateTimeDesc(postType, pageable);
+        boolean hasFilter = keyword != null || location != null || postType != null;
+        if (hasFilter) {
+            postPage = postRepository.searchPostsWithLocation(keyword, location, postType, pageable);
         } else {
             postPage = postRepository.findAll(pageable);
         }
 
-        return batchConvertToDTOs(postPage.getContent(), currentUserId, false);
+        List<PostDTO> dtos = batchConvertToDTOs(postPage.getContent(), currentUserId, false);
+        return PageDTO.<PostDTO>builder()
+                .content(dtos)
+                .page(postPage.getNumber() + 1)
+                .pageSize(postPage.getSize())
+                .totalElements(postPage.getTotalElements())
+                .totalPages(postPage.getTotalPages())
+                .hasNext(postPage.hasNext())
+                .hasPrevious(postPage.hasPrevious())
+                .build();
     }
 
     @Override

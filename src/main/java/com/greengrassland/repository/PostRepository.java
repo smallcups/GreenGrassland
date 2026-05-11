@@ -53,4 +53,23 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE " +
            "(:keyword IS NULL OR :keyword = '' OR p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%'))")
     Page<Post> searchPostsByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * 模糊搜索帖子（标题或内容），带位置筛选
+     */
+    @Query("SELECT p FROM Post p WHERE " +
+           "(:keyword IS NULL OR :keyword = '' OR p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%')) AND " +
+           "(:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%')) AND " +
+           "(:postType IS NULL OR p.type = :postType)")
+    Page<Post> searchPostsWithLocation(@Param("keyword") String keyword,
+                                        @Param("location") String location,
+                                        @Param("postType") PostType postType,
+                                        Pageable pageable);
+
+    /**
+     * 按位置模糊搜索
+     */
+    @Query("SELECT p FROM Post p WHERE " +
+           "(:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%'))")
+    Page<Post> searchPostsByLocation(@Param("location") String location, Pageable pageable);
 }

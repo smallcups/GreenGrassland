@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS post (
     type VARCHAR(50) NOT NULL COMMENT '活动类型',
     max_people INT NOT NULL COMMENT '最大人数',
     activity_time DATETIME COMMENT '活动时间',
-    location VARCHAR(200) COMMENT '活动地点',
+    location VARCHAR(200) NOT NULL COMMENT '活动地点',
     create_time DATETIME NOT NULL COMMENT '创建时间',
     update_time DATETIME COMMENT '更新时间',
     INDEX idx_user_id (user_id),

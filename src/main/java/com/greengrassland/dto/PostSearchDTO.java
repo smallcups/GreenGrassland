@@ -20,6 +20,11 @@ public class PostSearchDTO {
     private String keyword;
 
     /**
+     * 位置搜索（模糊匹配）
+     */
+    private String location;
+
+    /**
      * 活动类型
      */
     private String type;

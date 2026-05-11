@@ -1874,6 +1874,10 @@
                     </div>
                     <div id="filterPanel" class="filter-panel hidden">
                         <div class="filter-row">
+                            <label>位置</label>
+                            <input type="text" id="searchLocation" class="filter-select" placeholder="例如：体育馆、图书馆..." onkeypress="if(event.key==='Enter') searchPosts()">
+                        </div>
+                        <div class="filter-row">
                             <label>类型</label>
                             <select id="searchType" class="filter-select">
                                 <option value="">全部类型</option>
@@ -1939,8 +1943,8 @@
                         <input type="datetime-local" id="postActivityTime">
                     </div>
                     <div class="form-group">
-                        <label>活动地点</label>
-                        <input type="text" id="postLocation" placeholder="例如：体育馆">
+                        <label>活动地点 *</label>
+                        <input type="text" id="postLocation" required placeholder="在哪见面？例如：体育馆、图书馆三楼">
                     </div>
                     </div>
                     <div class="form-group">
@@ -2397,31 +2401,72 @@
         }
 
         // 搜索活动
-        async function searchPosts() {
+        async function searchPosts(page = 1) {
+            currentPage = page;
             const keyword = document.getElementById('searchKeyword').value.trim();
+            const location = document.getElementById('searchLocation').value.trim();
             const type = document.getElementById('searchType').value;
             const sortBy = document.getElementById('searchSortBy').value;
             const sortOrder = document.getElementById('searchSortOrder').value;
 
             try {
-                // 构建查询参数
                 const params = new URLSearchParams();
                 if (keyword) params.append('keyword', keyword);
+                if (location) params.append('location', location);
                 if (type) params.append('type', type);
                 if (sortBy) params.append('sortBy', sortBy);
                 if (sortOrder) params.append('sortOrder', sortOrder);
+                params.append('page', page);
+                params.append('pageSize', pageSize);
 
-                const url = '/post' + (params.toString() ? '?' + params.toString() : '');
+                const url = '/post?' + params.toString();
                 const result = await apiRequest(url);
                 if (result.code === 200) {
-                    renderPosts(result.data, 'postList');
-                    showMessage(`找到 ${result.data.length} 条结果`);
+                    const data = result.data;
+                    // 判断是否有分页包装
+                    if (data.content) {
+                        renderPosts(data.content, 'postList');
+                        totalPages = data.totalPages;
+                        currentPage = data.page;
+                    } else {
+                        renderPosts(data, 'postList');
+                        totalPages = 1;
+                        currentPage = 1;
+                    }
+                    renderPagination();
                 } else {
                     showMessage(result.message || '搜索失败', 'error');
                 }
             } catch (error) {
                 showMessage('搜索失败', 'error');
             }
+        }
+
+        // 渲染分页组件
+        function renderPagination() {
+            const postList = document.getElementById('postList');
+            let pagDiv = document.getElementById('pagination');
+            if (!pagDiv) {
+                pagDiv = document.createElement('div');
+                pagDiv.id = 'pagination';
+                postList.parentElement.appendChild(pagDiv);
+            }
+            if (totalPages <= 1) { pagDiv.innerHTML = ''; return; }
+
+            let html = '<div style="display:flex;justify-content:center;align-items:center;gap:8px;margin-top:24px;flex-wrap:wrap;">';
+            html += `<button onclick="searchPosts(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''} style="padding:8px 16px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius);cursor:pointer;font-size:14px;">‹ 上一页</button>`;
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === currentPage) {
+                    html += `<span style="padding:8px 16px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:white;border-radius:var(--radius);font-weight:700;font-size:14px;">${i}</span>`;
+                } else if (i <= 3 || i > totalPages - 3 || Math.abs(i - currentPage) <= 1) {
+                    html += `<button onclick="searchPosts(${i})" style="padding:8px 16px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius);cursor:pointer;font-size:14px;">${i}</button>`;
+                } else if (i === 4 || i === totalPages - 3) {
+                    html += '<span style="color:var(--text-muted);padding:4px;">...</span>';
+                }
+            }
+            html += `<button onclick="searchPosts(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''} style="padding:8px 16px;border:1px solid var(--border);background:var(--surface);border-radius:var(--radius);cursor:pointer;font-size:14px;">下一页 ›</button>`;
+            html += `<span style="font-size:13px;color:var(--text-muted);margin-left:8px;">共 ${totalPages} 页</span></div>`;
+            pagDiv.innerHTML = html;
         }
 
         // 切换筛选面板
@@ -2433,6 +2478,7 @@
         // 重置搜索
         function resetSearch() {
             document.getElementById('searchKeyword').value = '';
+            document.getElementById('searchLocation').value = '';
             document.getElementById('searchType').value = '';
             document.getElementById('searchSortBy').value = 'createTime';
             document.getElementById('searchSortOrder').value = 'DESC';
@@ -2790,6 +2836,11 @@
                 `;
             }).join('');
         }
+
+        // 分页状态
+        let currentPage = 1;
+        let totalPages = 1;
+        const pageSize = 12;
 
         // 帖子图片URL数组
         let postImageUrls = [];
