@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: greengrassland
+
+  # 数据源配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/greengrassland?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  # JPA配置
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+
+  # Session配置
+  session:
+    store-type: none
+    timeout: 1800
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
+
+server:
+  port: 8080
+  address: 0.0.0.0
+
+# 文件上传路径配置
+file:
+  upload-dir: ./uploads
+
+logging:
+  level:
+    com.greengrassland: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
