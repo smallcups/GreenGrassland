@@ -1,3 +1,6 @@
+(function() {
+"use strict";
+
         const API_BASE = '/api';
 
         // 切换标签页（通过按钮点击）
@@ -2353,3 +2356,5 @@
             notificationFilter = filter;
             document.querySelectorAll('.notif-filter-btn').forEach(b => b.classList.remove('active'));
             const btn = document.getElementById('notifFilter' + filter);
+
+})();
