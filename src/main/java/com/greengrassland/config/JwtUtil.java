@@ -16,7 +16,7 @@ public class JwtUtil {
     private final SecretKey key;
     private final long expiration;
 
-    public JwtUtil(@Value("${jwt.secret:GreenGrassLand-JWT-Secret-Key-2026-Must-Be-At-Least-256-Bits!!}") String secret,
+    public JwtUtil(@Value("${JWT_SECRET:dev-only-secret-change-in-production-min-256-bits!!}") String secret,
                    @Value("${jwt.expiration:86400000}") long expiration) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expiration = expiration;
