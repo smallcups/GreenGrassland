@@ -139,6 +139,8 @@
 
         window.handleLogin = async function(event) {
             event.preventDefault();
+            var btn = event.target.querySelector('button[type=submit]');
+            btnLoading(btn, true);
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
             try {
@@ -156,10 +158,13 @@
                     showMessage(result.message || '登录失败', 'error');
                 }
             } catch (e) { showMessage('操作失败', 'error'); }
+            btnLoading(btn, false);
         }
 
         window.handleRegister = async function(event) {
             event.preventDefault();
+            var btn = event.target.querySelector('button[type=submit]');
+            btnLoading(btn, true);
             const username = document.getElementById('regUsername').value.trim();
             const nickname = document.getElementById('regNickname').value.trim();
             const password = document.getElementById('regPassword').value;
@@ -172,21 +177,36 @@
                     body: JSON.stringify({ username, password, nickname: nickname || username })
                 });
                 if (result.code === 200) {
-                    showMessage('注册成功！请登录');
+                    showMessage('注册成功！');
+                    // 自动登录
+                    const loginResult = await apiRequest('/user/login', {
+                        method: 'POST',
+                        body: JSON.stringify({ username, password })
+                    });
+                    if (loginResult.code === 200) {
+                        if (loginResult.data.token) setToken(loginResult.data.token);
+                        updateUserInfo(loginResult.data);
+                    }
                     document.getElementById('regUsername').value = '';
                     document.getElementById('regNickname').value = '';
                     document.getElementById('regPassword').value = '';
                     document.getElementById('regConfirmPassword').value = '';
                     document.getElementById('regAgreeToS').checked = false;
-                    switchTab('login');
+                    switchTab('posts');
                 } else {
                     showMessage(result.message || '注册失败', 'error');
                 }
             } catch (e) { showMessage('注册失败', 'error'); }
+            btnLoading(btn, false);
         }
 
         window.showForgotPassword = function() {
             showMessage('请联系管理员重置密码。邮箱：admin@greengrassland.com');
+        }
+
+        function btnLoading(btn, loading) {
+            if (loading) { btn._t = btn.textContent; btn.disabled = true; btn.textContent = '⏳ '; btn.style.opacity = '0.7'; }
+            else if (btn._t) { btn.disabled = false; btn.textContent = btn._t; btn.style.opacity = '1'; }
         }
 
         // 登出
@@ -743,7 +763,7 @@
         function renderPosts(posts, containerId, showDelete = false) {
             const container = document.getElementById(containerId);
             if (!posts || posts.length === 0) {
-                container.innerHTML = '<p>暂无活动</p>';
+                container.innerHTML = '<p style=\"text-align:center;padding:40px;color:var(--text-muted);\">📭 暂无活动</p>';
                 return;
             }
 
@@ -814,6 +834,7 @@
                                 ${post.distance ? `<span style="font-size: 12px; color: var(--primary-dark); font-weight: 600;">📍 ${post.distance}km</span>` : ''}
                                 ${post.location && !post.distance ? `<span style="font-size: 12px; color: #999;">📍 ${post.location}</span>` : ''}
                                 ${activityTime !== '未设置' ? `<span style="font-size: 12px; color: #999;">🕐 ${activityTime}</span>` : ''}
+                                ${post.maxPeople ? `<span style="font-size: 12px; color: var(--text-secondary);">👥 ${post.currentPeople || 0}/${post.maxPeople}人</span>` : ''}
                             </div>
                         </div>
 
@@ -2389,7 +2410,7 @@
             }
 
             if (!filtered || filtered.length === 0) {
-                list.innerHTML = '<div class="notification-empty">暂无通知</div>';
+                list.innerHTML = '<div class="notification-empty">📭 暂无通知</div>';
                 return;
             }
 
