@@ -2930,13 +2930,13 @@
                 if (imageCount === 0) {
                     imagesHTML = '<div class="post-images-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer;" onclick="viewPostDetail(' + post.id + ')">📷</div>';
                 } else if (imageCount === 1) {
-                    imagesHTML = '<div class="post-images-container"><img src="' + imageList[0] + '" alt="帖子图片" class="post-main-image" onclick="viewPostDetail(' + post.id + ')"></div>';
+                    imagesHTML = '<div class="post-images-container"><img data-src="' + imageList[0] + '" alt="帖子图片" class="post-main-image" onclick="viewPostDetail(' + post.id + ')" loading="lazy"></div>';
                 } else if (imageCount === 2) {
-                    imagesHTML = '<div class="post-images-grid two"><img src="' + imageList[0] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"><img src="' + imageList[1] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"></div>';
+                    imagesHTML = '<div class="post-images-grid two"><img data-src="' + imageList[0] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><img data-src="' + imageList[1] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"></div>';
                 } else if (imageCount === 3) {
-                    imagesHTML = '<div class="post-images-grid three"><img src="' + imageList[0] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"><img src="' + imageList[1] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"><img src="' + imageList[2] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"></div>';
+                    imagesHTML = '<div class="post-images-grid three"><img data-src="' + imageList[0] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><img data-src="' + imageList[1] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><img data-src="' + imageList[2] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"></div>';
                 } else {
-                    imagesHTML = '<div class="post-images-grid"><img src="' + imageList[0] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"><img src="' + imageList[1] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"><img src="' + imageList[2] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"><div style="position: relative;"><img src="' + imageList[3] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')"><div class="post-images-count">+' + (imageCount - 4) + '</div></div></div>';
+                    imagesHTML = '<div class="post-images-grid"><img data-src="' + imageList[0] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><img data-src="' + imageList[1] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><img data-src="' + imageList[2] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><div style="position: relative;"><img data-src="' + imageList[3] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><div class="post-images-count">+' + (imageCount - 4) + '</div></div></div>';
                 }
 
                 return `
@@ -2993,6 +2993,7 @@
                     </div>
                 `;
             }).join('');
+            observeNewImages(container);
         }
 
         // 地理位置
@@ -3448,6 +3449,7 @@
             `;
 
             document.getElementById('postDetailContent').innerHTML = html;
+            observeNewImages(document.getElementById('postDetailContent'));
         }
 
         // 当前正在回复的评论ID
@@ -4464,10 +4466,41 @@
             }
         }
 
+        // 图片懒加载
+        function initLazyLoading() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const img = entry.target;
+                        if (img.dataset.src) {
+                            img.src = img.dataset.src;
+                            img.removeAttribute('data-src');
+                            img.classList.add('lazy-loaded');
+                        }
+                        observer.unobserve(img);
+                    }
+                });
+            }, { rootMargin: '100px' });
+
+            document.querySelectorAll('img[data-src]').forEach(img => observer.observe(img));
+            return observer;
+        }
+
+        let lazyObserver = null;
+
+        // 观察新增的懒加载图片
+        function observeNewImages(container) {
+            if (!lazyObserver) lazyObserver = initLazyLoading();
+            if (container) {
+                container.querySelectorAll('img[data-src]').forEach(img => lazyObserver.observe(img));
+            }
+        }
+
         // 页面加载时检查登录状态
         window.onload = function() {
             updateUserInfo();
             connectWebSocket();
+            lazyObserver = initLazyLoading();
         };
     </script>
 </body>
