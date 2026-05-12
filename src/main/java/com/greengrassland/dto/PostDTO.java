@@ -21,7 +21,8 @@ public class PostDTO {
     private Long userId;
     private String username;
     private String nickname;
-    private String userAvatar; // 发布者头像
+    private String userAvatar;
+    private Long authorPostCount;
     private String title;
     private String content;
     private PostType type;

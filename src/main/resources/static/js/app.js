@@ -773,7 +773,15 @@
                 // 生成图片HTML（小红书风格：图片优先）
                 let imagesHTML = '';
                 if (imageCount === 0) {
-                    imagesHTML = '<div class="post-images-container" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; cursor: pointer;" onclick="viewPostDetail(' + post.id + ')">📷</div>';
+                    var coverStyles = {
+                        'BALL_GAME': 'background:linear-gradient(135deg,#f97316,#ef4444);',
+                        'BOARD_GAME': 'background:linear-gradient(135deg,#8b5cf6,#6366f1);',
+                        'PET_SOCIAL': 'background:linear-gradient(135deg,#ec4899,#f43f5e);',
+                        'GROUP_ACTIVITY': 'background:linear-gradient(135deg,#10b981,#059669);',
+                        'STUDY_GROUP': 'background:linear-gradient(135deg,#3b82f6,#2563eb);'
+                    };
+                    var coverStyle = (coverStyles[post.type] || 'background:linear-gradient(135deg,#667eea,#764ba2);') + 'display:flex;align-items:center;justify-content:center;color:white;font-size:36px;cursor:pointer;min-height:180px;';
+                    imagesHTML = '<div class="post-images-container" style="' + coverStyle + '" onclick="viewPostDetail(' + post.id + ')"><div style="text-align:center;"><div style="font-size:48px;margin-bottom:8px;">' + (typeMap[post.type] || '📷').charAt(0) + '</div><div style="font-size:14px;opacity:0.9;">' + (typeMap[post.type] || '活动').substring(2) + '</div></div></div>';
                 } else if (imageCount === 1) {
                     imagesHTML = '<div class="post-images-container"><img data-src="' + imageList[0] + '" alt="帖子图片" class="post-main-image" onclick="viewPostDetail(' + post.id + ')" loading="lazy"></div>';
                 } else if (imageCount === 2) {
@@ -790,7 +798,7 @@
                         <div class="post-header" onclick="event.stopPropagation()">
                             <img src="${userAvatar}" alt="头像" class="post-author-avatar" onerror="this.src='/images/default-avatar.svg'" onclick="viewUserProfile(${post.userId}); event.stopPropagation();">
                             <div class="post-author-info">
-                                <div class="post-author-name">${post.nickname || post.username}</div>
+                                <div class="post-author-name">${post.nickname || post.username}${post.authorPostCount > 5 ? ' <span style="font-size:10px;background:var(--primary-bg);color:var(--primary-dark);padding:1px 6px;border-radius:8px;font-weight:500;" title="已发起'+post.authorPostCount+'个活动">活跃</span>' : ''}</div>
                                 <div class="post-meta">${createTime}</div>
                             </div>
                         </div>
@@ -2558,10 +2566,9 @@
 
         async function loadRecommendPosts() {
             try {
-                const result = await apiRequest('/post?sortBy=createTime&sortOrder=ASC&page=1&pageSize=5');
-                if (result.code === 200 && result.data.content && result.data.content.length > 0) {
-                    const posts = result.data.content.reverse().slice(0, 4);
-                    document.getElementById('recommendPosts').innerHTML = posts.map(function(p) {
+                const result = await apiRequest('/post/recommend');
+                if (result.code === 200 && result.data && result.data.length > 0) {
+                    document.getElementById('recommendPosts').innerHTML = result.data.slice(0, 4).map(function(p) {
                         return '<div class="featured-post-card" onclick="viewPostDetail(' + p.id + ')" style="border:1px solid #c7d2fe;"><div class="featured-post-title">' + escapeHtml(p.title) + '</div><div class="featured-post-meta">' + (p.location || '') + '</div></div>';
                     }).join('');
                     document.getElementById('recommendSection').style.display = 'block';

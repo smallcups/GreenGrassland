@@ -4,6 +4,7 @@ import com.greengrassland.dto.PostCreateDTO;
 import com.greengrassland.dto.PostDTO;
 import com.greengrassland.dto.PostSearchDTO;
 import com.greengrassland.entity.Post;
+import com.greengrassland.entity.PostStatus;
 import com.greengrassland.entity.PostType;
 import com.greengrassland.entity.User;
 import com.greengrassland.exception.BusinessException;
@@ -233,6 +234,32 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public List<PostDTO> recommendPosts(Long userId) {
+        List<Post> posts;
+        if (userId != null) {
+            List<Long> registeredPostIds = registrationRepository.findPostIdsByUserId(userId);
+            if (!registeredPostIds.isEmpty()) {
+                List<Post> registeredPosts = postRepository.findAllById(registeredPostIds);
+                List<PostType> preferredTypes = registeredPosts.stream()
+                        .map(Post::getType).distinct().collect(Collectors.toList());
+                posts = postRepository.findAll().stream()
+                        .filter(p -> preferredTypes.contains(p.getType()))
+                        .filter(p -> p.getStatus() == PostStatus.RECRUITING)
+                        .limit(6).collect(Collectors.toList());
+            } else {
+                posts = postRepository.findAllByOrderByCreateTimeDesc().stream()
+                        .filter(p -> p.getStatus() == PostStatus.RECRUITING)
+                        .limit(6).collect(Collectors.toList());
+            }
+        } else {
+            posts = postRepository.findAllByOrderByCreateTimeDesc().stream()
+                    .filter(p -> p.getStatus() == PostStatus.RECRUITING)
+                    .limit(6).collect(Collectors.toList());
+        }
+        return batchConvertToDTOs(posts, userId, false);
+    }
+
+    @Override
     @Transactional
     public void cancelPost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
@@ -258,6 +285,12 @@ public class PostServiceImpl implements PostService {
         List<Long> userIds = posts.stream().map(Post::getUserId).distinct().collect(Collectors.toList());
         Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
+
+        // 批量加载作者发布数
+        Map<Long, Long> authorPostCountMap = new HashMap<>();
+        for (Long uid : userIds) {
+            authorPostCountMap.put(uid, postRepository.countByUserId(uid));
+        }
 
         // 批量加载报名数
         Map<Long, Long> registrationCountMap = new HashMap<>();
@@ -314,7 +347,7 @@ public class PostServiceImpl implements PostService {
                 .map(post -> {
                     boolean isRegistered = allRegistered || (currentUserId != null && registeredPostIds.contains(post.getId()));
                     return convertToDTOWithMaps(post, currentUserId, isRegistered, false,
-                            userMap, registrationCountMap, likeCountMap, likedPostIds, favoriteCountMap, favoritedPostIds, commentCountMap);
+                            userMap, registrationCountMap, likeCountMap, likedPostIds, favoriteCountMap, favoritedPostIds, commentCountMap, authorPostCountMap);
                 })
                 .collect(Collectors.toList());
     }
@@ -343,6 +376,7 @@ public class PostServiceImpl implements PostService {
                 .username(username)
                 .nickname(nickname)
                 .userAvatar(userAvatar)
+                .authorPostCount(0L)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .type(post.getType())
@@ -378,7 +412,7 @@ public class PostServiceImpl implements PostService {
                                           Map<Long, User> userMap, Map<Long, Long> registrationCountMap,
                                           Map<Long, Long> likeCountMap, Set<Long> likedPostIds,
                                           Map<Long, Long> favoriteCountMap, Set<Long> favoritedPostIds,
-                                          Map<Long, Long> commentCountMap) {
+                                          Map<Long, Long> commentCountMap, Map<Long, Long> authorPostCountMap) {
         User user = userMap.get(post.getUserId());
         String username = user != null ? user.getUsername() : "未知用户";
         String nickname = user != null ? (user.getNickname() != null ? user.getNickname() : user.getUsername()) : "未知用户";
@@ -400,6 +434,7 @@ public class PostServiceImpl implements PostService {
                 .username(username)
                 .nickname(nickname)
                 .userAvatar(userAvatar)
+                .authorPostCount(0L)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .type(post.getType())

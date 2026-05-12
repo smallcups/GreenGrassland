@@ -94,6 +94,15 @@ public class PostController {
     }
 
     /**
+     * 智能推荐（热门活动 / 基于用户行为）
+     */
+    @GetMapping("/recommend")
+    public ResponseEntity<ApiResponse<List<PostDTO>>> recommend(HttpServletRequest request) {
+        Long userId = SessionConfig.getCurrentUserId(request);
+        return ResponseEntity.ok(ApiResponse.success(postService.recommendPosts(userId)));
+    }
+
+    /**
      * 获取我的发布
      */
     @GetMapping("/my/posts")
