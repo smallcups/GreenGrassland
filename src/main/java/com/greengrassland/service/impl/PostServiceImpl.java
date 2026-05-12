@@ -218,6 +218,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"postList", "postDetail"}, key = "#postId")
     public void deletePost(Long postId, Long userId) {
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isEmpty()) {
@@ -261,6 +262,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"postList", "postDetail"}, key = "#postId")
     public void cancelPost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException("活动不存在"));
