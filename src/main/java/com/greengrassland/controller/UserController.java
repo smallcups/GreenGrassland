@@ -1,5 +1,6 @@
 package com.greengrassland.controller;
 
+import com.greengrassland.config.JwtUtil;
 import com.greengrassland.config.SessionConfig;
 import com.greengrassland.dto.ApiResponse;
 import com.greengrassland.dto.UserDTO;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     /**
      * 用户注册
@@ -44,7 +46,10 @@ public class UserController {
         // 将用户ID存入Session
         HttpSession session = request.getSession(true);
         session.setAttribute(SessionConfig.SESSION_USER_ID, userDTO.getId());
-        
+
+        // 生成JWT token
+        userDTO.setToken(jwtUtil.generateToken(userDTO.getId()));
+
         return ResponseEntity.ok(ApiResponse.success(userDTO));
     }
 

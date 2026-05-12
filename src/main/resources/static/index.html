@@ -2294,14 +2294,18 @@
         }
 
         // API请求
+        function getToken() { return localStorage.getItem('jwt_token'); }
+        function setToken(token) { localStorage.setItem('jwt_token', token); }
+        function clearToken() { localStorage.removeItem('jwt_token'); }
+
         async function apiRequest(url, options = {}) {
             try {
+                const token = getToken();
+                const headers = { 'Content-Type': 'application/json', ...options.headers };
+                if (token) { headers['Authorization'] = 'Bearer ' + token; }
                 const response = await fetch(API_BASE + url, {
                     ...options,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers
-                    },
+                    headers: headers,
                     credentials: 'include'
                 });
                 const data = await response.json();
@@ -2356,6 +2360,7 @@
                             body: JSON.stringify({ username, password })
                         });
                         if (loginResult.code === 200) {
+                            if (loginResult.data.token) setToken(loginResult.data.token);
                             showMessage('欢迎你，' + (loginResult.data.nickname || loginResult.data.username) + '！');
                             updateUserInfo(loginResult.data);
                             clearAuthForm();
@@ -2376,6 +2381,7 @@
                         body: JSON.stringify({ username, password })
                     });
                     if (loginResult.code === 200) {
+                        if (loginResult.data.token) setToken(loginResult.data.token);
                         showMessage('欢迎回来，' + (loginResult.data.nickname || loginResult.data.username) + '！');
                         updateUserInfo(loginResult.data);
                         clearAuthForm();
@@ -2392,6 +2398,7 @@
                                 body: JSON.stringify({ username, password })
                             });
                             if (loginResult2.code === 200) {
+                                if (loginResult2.data.token) setToken(loginResult2.data.token);
                                 showMessage('欢迎你，' + (loginResult2.data.nickname || loginResult2.data.username) + '！');
                                 updateUserInfo(loginResult2.data);
                                 clearAuthForm();
@@ -2422,6 +2429,7 @@
         async function logout() {
             try {
                 await apiRequest('/user/logout', { method: 'POST' });
+                clearToken();
                 showMessage('已登出');
                 document.getElementById('userInfo').classList.add('hidden');
                 document.getElementById('currentUsername').textContent = '';

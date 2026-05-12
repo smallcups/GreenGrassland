@@ -28,5 +28,6 @@ public class UserDTO {
     private Long favoriteCount;
     private Long followerCount;
     private Long followingCount;
+    private String token;
     private LocalDateTime createTime;
 }
