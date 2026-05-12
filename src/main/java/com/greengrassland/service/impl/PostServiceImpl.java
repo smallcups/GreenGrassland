@@ -19,6 +19,8 @@ import com.greengrassland.service.PostLikeService;
 import com.greengrassland.service.PostService;
 import com.greengrassland.service.SensitiveWordFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -54,6 +56,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"postList"}, allEntries = true)
     public PostDTO createPost(Long userId, PostCreateDTO createDTO) {
         String matched = sensitiveWordFilter.findFirstMatch(createDTO.getTitle());
         if (matched != null) throw new BusinessException("标题包含敏感词");
@@ -83,6 +86,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Cacheable(value = "postList", key = "'all'", unless = "#result.isEmpty()")
     public List<PostDTO> getPostList(Long currentUserId) {
         List<Post> posts = postRepository.findAllByOrderByCreateTimeDesc();
         return batchConvertToDTOs(posts, currentUserId, false);
@@ -184,6 +188,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Cacheable(value = "postDetail", key = "#postId", unless = "#result == null")
     public PostDTO getPostDetail(Long postId, Long currentUserId) {
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isEmpty()) {

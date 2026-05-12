@@ -15,6 +15,8 @@ import com.greengrassland.repository.UserRepository;
 import com.greengrassland.service.SensitiveWordFilter;
 import com.greengrassland.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,6 +91,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "user", key = "#userId", unless = "#result == null")
     public UserDTO getUserById(Long userId) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
@@ -113,6 +116,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "user", key = "#userId")
     public UserDTO updateProfile(Long userId, UserUpdateDTO updateDTO) {
         Optional<User> userOpt = userRepository.findById(userId);
         if (userOpt.isEmpty()) {
