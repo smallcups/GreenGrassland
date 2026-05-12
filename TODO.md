@@ -89,7 +89,7 @@
 ## 六、前端体验
 
 ### 6.1 性能
-- [ ] 图片懒加载（Intersection Observer）
+- [x] 图片懒加载（Intersection Observer）
 - [ ] 虚拟滚动（活动列表很长时）
 - [ ] 静态资源压缩（Gzip/CDN）
 - [ ] Service Worker 离线缓存

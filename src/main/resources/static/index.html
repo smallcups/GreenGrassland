@@ -1884,6 +1884,35 @@
         }
 
         .participant-name { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+
+        @keyframes skeleton-shimmer {
+            0% { background-position: -200px 0; }
+            100% { background-position: calc(200px + 100%) 0; }
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+            background-size: 200px 100%;
+            animation: skeleton-shimmer 1.5s ease-in-out infinite;
+            border-radius: var(--radius);
+        }
+
+        .skeleton-card {
+            background: var(--surface);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .skeleton-avatar { width: 40px; height: 40px; border-radius: 50%; }
+
+        .skeleton-line { height: 14px; margin-bottom: 8px; }
+
+        .skeleton-line.short { width: 60%; }
+        .skeleton-line.medium { width: 80%; }
+
+        .skeleton-image { width: 100%; height: 200px; margin-bottom: 10px; border-radius: var(--radius); }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
@@ -2094,7 +2123,10 @@
             <div id="myProfile" class="tab-content">
                 <div class="form-container" style="max-width:720px;">
                     <div id="profileContent">
-                        <div class="detail-loading">加载中...</div>
+                        <div class="detail-loading">
+                            <div class="skeleton-card"><div class="skeleton skeleton-avatar" style="margin-bottom:8px;"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div></div>
+                            <div class="skeleton-card"><div class="skeleton skeleton-avatar" style="margin-bottom:8px;"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line medium"></div></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2121,7 +2153,7 @@
                 <span class="detail-close" onclick="closePostDetail()">&times;</span>
             </div>
             <div class="detail-modal-body" id="postDetailContent">
-                <div class="detail-loading">加载中...</div>
+                <div class="detail-loading"><div class="skeleton skeleton-line" style="height:24px;width:40%;margin-bottom:12px;"></div><div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line medium"></div><div class="skeleton skeleton-line short"></div></div>
             </div>
         </div>
     </div>
@@ -2134,7 +2166,7 @@
                 <span class="detail-close" onclick="closeUserProfile()">&times;</span>
             </div>
             <div class="detail-modal-body" id="userProfileContent">
-                <div class="detail-loading">加载中...</div>
+                <div class="detail-loading"><div class="skeleton skeleton-avatar" style="width:60px;height:60px;margin:0 auto 12px;"></div><div class="skeleton skeleton-line short" style="margin:0 auto 12px;"></div><div class="skeleton skeleton-line"></div></div>
             </div>
         </div>
     </div>
