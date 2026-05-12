@@ -1755,8 +1755,11 @@
                     renderUserProfile(result.data);
                     loadCommonFollows(userId);
                 } else {
+                    document.getElementById('userProfileContent').innerHTML =
+                        '<div class="detail-loading">加载失败：' + (result.message || '未知错误') + '</div>';
+                }
             } catch (error) {
-                document.getElementById('userProfileContent').innerHTML = 
+                document.getElementById('userProfileContent').innerHTML =
                     '<div class="detail-loading">加载失败：' + error.message + '</div>';
             }
         }
