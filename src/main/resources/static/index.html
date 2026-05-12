@@ -4151,6 +4151,8 @@
                         ${!isOwnProfile ? `
                         <div class="user-profile-actions">
                             <button class="user-profile-action-btn primary" onclick="startChatWithUser(${user.id})">💬 聊天</button>
+                            <button class="user-profile-action-btn" style="background:#fef2f2;color:#dc2626;" onclick="blockUser(${user.id})">🚫 屏蔽</button>
+                            <button class="user-profile-action-btn" onclick="reportTarget('USER',${user.id})">🚩 举报</button>
                         </div>
                         ` : ''}
                     </div>
@@ -4172,6 +4174,21 @@
             `;
 
             document.getElementById('userProfileContent').innerHTML = html;
+        }
+
+        async function blockUser(userId) {
+            if (!confirm('确定要屏蔽该用户吗？')) return;
+            const result = await apiRequest('/user/block/' + userId, { method: 'POST' });
+            if (result.code === 200) { showMessage('已屏蔽'); closeUserProfile(); }
+            else showMessage(result.message || '操作失败', 'error');
+        }
+
+        async function reportTarget(type, id) {
+            const reason = prompt('请输入举报原因：');
+            if (!reason) return;
+            const result = await apiRequest('/report', { method: 'POST', body: JSON.stringify({ targetType: type, targetId: id, reason: reason }) });
+            if (result.code === 200) showMessage('举报已提交');
+            else showMessage(result.message || '举报失败', 'error');
         }
 
         // 与用户开始聊天
