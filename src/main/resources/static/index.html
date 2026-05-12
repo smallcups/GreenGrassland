@@ -4104,14 +4104,26 @@
                 const result = await apiRequest(`/user/${userId}`);
                 if (result.code === 200) {
                     renderUserProfile(result.data);
+                    loadCommonFollows(userId);
                 } else {
-                    document.getElementById('userProfileContent').innerHTML = 
-                        '<div class="detail-loading">加载失败：' + (result.message || '未知错误') + '</div>';
-                }
             } catch (error) {
                 document.getElementById('userProfileContent').innerHTML = 
                     '<div class="detail-loading">加载失败：' + error.message + '</div>';
             }
+        }
+
+        async function loadCommonFollows(userId) {
+            try {
+                const result = await apiRequest('/user/common/follows/' + userId);
+                if (result.code === 200 && result.data && result.data.length > 0) {
+                    const container = document.getElementById('commonFollowsSection');
+                    if (!container) return;
+                    container.style.display = 'block';
+                    document.getElementById('commonFollowsList').innerHTML = result.data.map(function(u) {
+                        return '<span class="participant-item" onclick="viewUserProfile(' + u.id + ')" style="display:inline-flex;margin:2px;"><img src="' + (u.avatar || '/images/default-avatar.svg') + '" alt="" class="participant-avatar" onerror="this.src=\'/images/default-avatar.svg\'"><span class="participant-name">' + (u.nickname || u.username) + '</span></span>';
+                    }).join('');
+                }
+            } catch(e) {}
         }
 
         // 关闭用户主页
@@ -4151,6 +4163,10 @@
                             <span class="user-profile-info-label">注册时间</span>
                             <span class="user-profile-info-value">${createTime}</span>
                         </div>
+                    </div>
+                    <div id="commonFollowsSection" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+                        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;">🤝 共同关注</div>
+                        <div id="commonFollowsList"></div>
                     </div>
                 </div>
             `;
@@ -5054,6 +5070,9 @@
             renderHotTags();
             loadFeaturedPosts();
             initInfiniteScroll();
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/sw.js');
+            }
             setTimeout(showOnboarding, 1000);
         };
     </script>
