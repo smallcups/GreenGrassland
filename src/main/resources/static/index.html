@@ -1993,12 +1993,52 @@
         }
 
         .hot-tag:hover { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); }
+
+        .mobile-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            z-index: 1000;
+            padding: 6px 0 env(safe-area-inset-bottom, 6px);
+            justify-content: space-around;
+        }
+
+        .mobile-nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: 10px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px 12px;
+            transition: color var(--transition);
+        }
+
+        .mobile-nav-item span:first-child { font-size: 20px; }
+
+        .mobile-nav-item.active { color: var(--primary); font-weight: 600; }
+
+        @media (max-width: 768px) {
+            .mobile-nav { display: flex; }
+            body { padding-bottom: 70px; }
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
 </head>
 <body>
     <div id="offlineBanner" class="offline-banner">网络连接已断开</div>
+    <nav class="mobile-nav" id="mobileNav">
+        <div class="mobile-nav-item active" onclick="switchTab('posts')"><span>🏠</span><span>首页</span></div>
+        <div class="mobile-nav-item" onclick="switchTab('create')"><span>➕</span><span>发布</span></div>
+        <div class="mobile-nav-item" onclick="switchTab('messages')"><span>💬</span><span>消息</span></div>
+        <div class="mobile-nav-item" onclick="switchTab('myProfile')"><span>👤</span><span>我的</span></div>
+    </nav>
     <div class="header">
         <div class="header-inner">
             <div class="header-brand">
@@ -2300,6 +2340,13 @@
                 });
             }
             document.getElementById(tabName).classList.add('active');
+
+            // 更新移动端导航高亮
+            document.querySelectorAll('.mobile-nav-item').forEach(function(item) {
+                item.classList.remove('active');
+                var onclick = item.getAttribute('onclick') || '';
+                if (onclick.includes("'" + tabName + "'")) item.classList.add('active');
+            });
 
             // 加载对应数据
             if (tabName === 'posts') {
