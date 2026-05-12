@@ -2169,6 +2169,10 @@
                     <div class="featured-title">✨ 精选活动</div>
                     <div id="featuredPosts" class="featured-posts"></div>
                 </div>
+                <div id="recommendSection" class="featured-section" style="display:none;background:linear-gradient(135deg,#eff6ff,#faf5ff);border-color:#818cf8;">
+                    <div class="featured-title" style="color:#4f46e5;">🎯 你可能感兴趣</div>
+                    <div id="recommendPosts" class="featured-posts"></div>
+                </div>
                 <div class="search-container">
                     <div class="search-box-wrapper">
                         <input type="text" id="searchKeyword" class="search-input" placeholder="🔍  搜索感兴趣的活动..." onkeypress="if(event.key==='Enter') searchPosts()" onfocus="renderSearchHistory()">
@@ -4977,6 +4981,19 @@
             });
         }
 
+        async function loadRecommendPosts() {
+            try {
+                const result = await apiRequest('/post?sortBy=createTime&sortOrder=ASC&page=1&pageSize=5');
+                if (result.code === 200 && result.data.content && result.data.content.length > 0) {
+                    const posts = result.data.content.reverse().slice(0, 4);
+                    document.getElementById('recommendPosts').innerHTML = posts.map(function(p) {
+                        return '<div class="featured-post-card" onclick="viewPostDetail(' + p.id + ')" style="border:1px solid #c7d2fe;"><div class="featured-post-title">' + escapeHtml(p.title) + '</div><div class="featured-post-meta">' + (p.location || '') + '</div></div>';
+                    }).join('');
+                    document.getElementById('recommendSection').style.display = 'block';
+                }
+            } catch(e) {}
+        }
+
         // 精选活动
         async function loadFeaturedPosts() {
             try {
@@ -5086,6 +5103,7 @@
             initPullToRefresh();
             renderHotTags();
             loadFeaturedPosts();
+            loadRecommendPosts();
             initInfiniteScroll();
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js');

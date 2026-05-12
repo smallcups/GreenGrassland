@@ -73,6 +73,8 @@ public class PostServiceImpl implements PostService {
                 .latitude(createDTO.getLatitude())
                 .longitude(createDTO.getLongitude())
                 .images(createDTO.getImages())
+                .approvalMode(createDTO.getApprovalMode() != null ? createDTO.getApprovalMode() : false)
+                .isSeries(createDTO.getIsSeries() != null ? createDTO.getIsSeries() : false)
                 .build();
 
         post = postRepository.save(post);
@@ -350,6 +352,8 @@ public class PostServiceImpl implements PostService {
                 .images(post.getImages())
                 .latitude(post.getLatitude())
                 .longitude(post.getLongitude())
+                .approvalMode(post.getApprovalMode())
+                .isSeries(post.getIsSeries())
                 .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())
@@ -405,6 +409,8 @@ public class PostServiceImpl implements PostService {
                 .images(post.getImages())
                 .latitude(post.getLatitude())
                 .longitude(post.getLongitude())
+                .approvalMode(post.getApprovalMode())
+                .isSeries(post.getIsSeries())
                 .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())

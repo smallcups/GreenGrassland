@@ -12,7 +12,11 @@ import java.time.LocalDateTime;
  * 活动帖子实体
  */
 @Entity
-@Table(name = "post")
+@Table(name = "post", indexes = {
+    @Index(name = "idx_post_status", columnList = "status"),
+    @Index(name = "idx_post_activity_time", columnList = "activity_time"),
+    @Index(name = "idx_post_lat_lng", columnList = "latitude,longitude")
+})
 @Data
 @Builder
 @NoArgsConstructor
@@ -82,6 +86,14 @@ public class Post {
      */
     @Column(name = "images", length = 2000)
     private String images;
+
+    @Column(name = "approval_mode")
+    @Builder.Default
+    private Boolean approvalMode = false;
+
+    @Column(name = "is_series")
+    @Builder.Default
+    private Boolean isSeries = false;
 
     /**
      * 创建时间

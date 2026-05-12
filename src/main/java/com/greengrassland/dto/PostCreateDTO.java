@@ -41,4 +41,8 @@ public class PostCreateDTO {
     private Double longitude;
 
     private String images;
+
+    private Boolean approvalMode;
+
+    private Boolean isSeries;
 }

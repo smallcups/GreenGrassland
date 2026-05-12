@@ -33,6 +33,8 @@ public class PostDTO {
     private Double latitude;
     private Double longitude;
     private Double distance;
+    private Boolean approvalMode;
+    private Boolean isSeries;
     private com.greengrassland.entity.PostStatus status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
