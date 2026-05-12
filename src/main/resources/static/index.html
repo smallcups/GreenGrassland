@@ -1994,6 +1994,44 @@
 
         .hot-tag:hover { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); }
 
+        .featured-section {
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--primary-bg), var(--accent-light));
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            border: 1px solid var(--primary);
+        }
+
+        .featured-title { font-size: 15px; font-weight: 700; color: var(--primary-dark); margin-bottom: 8px; }
+
+        .featured-posts { display: flex; gap: 8px; overflow-x: auto; }
+
+        .featured-post-card {
+            min-width: 160px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 12px;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            flex-shrink: 0;
+        }
+
+        .chat-entry-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            animation: pulse-badge 2s infinite;
+        }
+
+        @keyframes pulse-badge { 0%,100% { box-shadow: 0 0 0 0 rgba(102,126,234,0.4); } 50% { box-shadow: 0 0 0 6px rgba(102,126,234,0); } }
+
         .mobile-nav {
             display: none;
             position: fixed;
@@ -2127,6 +2165,10 @@
 
             <!-- 活动列表 -->
             <div id="posts" class="tab-content">
+                <div id="featuredSection" class="featured-section" style="display:none;">
+                    <div class="featured-title">✨ 精选活动</div>
+                    <div id="featuredPosts" class="featured-posts"></div>
+                </div>
                 <div class="search-container">
                     <div class="search-box-wrapper">
                         <input type="text" id="searchKeyword" class="search-input" placeholder="🔍  搜索感兴趣的活动..." onkeypress="if(event.key==='Enter') searchPosts()" onfocus="renderSearchHistory()">
@@ -3558,6 +3600,16 @@
             }).join('');
         }
 
+        async function openGroupChat(postId) {
+            try {
+                const result = await apiRequest('/group-chat/post/' + postId + '/room');
+                if (result.code === 200) {
+                    switchTab('messages');
+                    setTimeout(function() { openChatRoom(result.data.id, 'group'); }, 300);
+                }
+            } catch(e) {}
+        }
+
         function sharePost(postId) {
             const url = window.location.origin + '/?post=' + postId;
             if (navigator.clipboard) {
@@ -3662,7 +3714,7 @@
                         </button>
                         <button class="detail-action-btn" onclick="sharePost(${post.id})" title="复制链接">🔗 分享</button>
                         ${post.isRegistered
-                            ? `<button class="btn btn-danger" onclick="cancelRegistrationFromDetail(${post.id})">取消报名</button>`
+                            ? `<span class="chat-entry-badge" onclick="event.stopPropagation();openGroupChat(${post.id})">💬 进入群聊</span><button class="btn btn-danger" onclick="cancelRegistrationFromDetail(${post.id})">取消报名</button>`
                             : `<button class="btn btn-success" onclick="registerPostFromDetail(${post.id})">报名</button>`
                         }
                     </div>
@@ -4882,6 +4934,21 @@
             });
         }
 
+        // 精选活动
+        async function loadFeaturedPosts() {
+            try {
+                const result = await apiRequest('/post?sortBy=createTime&sortOrder=DESC&page=1&pageSize=6');
+                if (result.code === 200 && result.data.content && result.data.content.length > 0) {
+                    const featured = result.data.content.slice(0, 4);
+                    const container = document.getElementById('featuredPosts');
+                    container.innerHTML = featured.map(function(p) {
+                        return '<div class="featured-post-card" onclick="viewPostDetail(' + p.id + ')"><div class="featured-post-title">' + escapeHtml(p.title) + '</div><div class="featured-post-meta">' + (p.location || '') + '</div></div>';
+                    }).join('');
+                    document.getElementById('featuredSection').style.display = 'block';
+                }
+            } catch(e) {}
+        }
+
         // 热门标签
         function renderHotTags() {
             const container = document.getElementById('hotTags');
@@ -4924,6 +4991,7 @@
             requestNotificationPermission();
             initPullToRefresh();
             renderHotTags();
+            loadFeaturedPosts();
             setTimeout(showOnboarding, 1000);
         };
     </script>
