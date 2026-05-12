@@ -1859,6 +1859,31 @@
         .edit-profile-form .form-group { margin-bottom: 14px; }
 
         .edit-profile-form .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+
+        .participant-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+        .participant-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: var(--surface-hover);
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .participant-item:hover { background: var(--primary-bg); }
+
+        .participant-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--border);
+        }
+
+        .participant-name { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
@@ -3277,6 +3302,7 @@
                 if (result.code === 200) {
                     currentDetailPost = result.data;
                     renderPostDetail(result.data);
+                    loadParticipants(postId);
                 } else {
                     document.getElementById('postDetailContent').innerHTML = 
                         '<div class="detail-loading">加载失败：' + (result.message || '未知错误') + '</div>';
@@ -3285,6 +3311,35 @@
                 document.getElementById('postDetailContent').innerHTML = 
                     '<div class="detail-loading">加载失败：' + error.message + '</div>';
             }
+        }
+
+        // 加载参与者列表
+        async function loadParticipants(postId) {
+            try {
+                const result = await apiRequest(`/post/registration/${postId}/participants`);
+                if (result.code === 200) {
+                    renderParticipants(result.data);
+                }
+            } catch (e) {}
+        }
+
+        function renderParticipants(participants) {
+            const container = document.getElementById('participantList');
+            const countEl = document.getElementById('participantCount');
+            if (!participants || participants.length === 0) {
+                container.innerHTML = '<span style="font-size:12px;color:var(--text-muted);">暂无报名</span>';
+                if (countEl) countEl.textContent = '';
+                return;
+            }
+            if (countEl) countEl.textContent = '(' + participants.length + ')';
+            container.innerHTML = participants.map(p => {
+                const avatar = p.avatar || '/images/default-avatar.svg';
+                const name = p.nickname || p.username;
+                return `<div class="participant-item" onclick="viewUserProfile(${p.id})" title="@${p.username}">
+                    <img src="${avatar}" alt="${name}" class="participant-avatar" onerror="this.src='/images/default-avatar.svg'">
+                    <span class="participant-name">${name}</span>
+                </div>`;
+            }).join('');
         }
 
         // 关闭详情模态框
@@ -3354,6 +3409,12 @@
                                 <div class="detail-post-activity-value">${post.currentPeople || 0} / ${post.maxPeople}</div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- 参与者 -->
+                    <div class="detail-post-action-section">
+                        <div class="detail-comments-title" style="margin-bottom:4px;">参与者 <span id="participantCount"></span></div>
+                        <div class="participant-list" id="participantList"></div>
                     </div>
 
                     <!-- 操作按钮 -->

@@ -1,16 +1,21 @@
 package com.greengrassland.service.impl;
 
+import com.greengrassland.dto.UserDTO;
 import com.greengrassland.entity.Post;
 import com.greengrassland.entity.PostRegistration;
+import com.greengrassland.entity.User;
 import com.greengrassland.exception.BusinessException;
 import com.greengrassland.repository.PostRegistrationRepository;
 import com.greengrassland.repository.PostRepository;
+import com.greengrassland.repository.UserRepository;
 import com.greengrassland.service.PostRegistrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * 活动报名服务实现
@@ -21,6 +26,7 @@ public class PostRegistrationServiceImpl implements PostRegistrationService {
 
     private final PostRepository postRepository;
     private final PostRegistrationRepository registrationRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -84,5 +90,18 @@ public class PostRegistrationServiceImpl implements PostRegistrationService {
                 postRepository.save(post);
             }
         }
+    }
+
+    @Override
+    public List<UserDTO> getParticipants(Long postId) {
+        List<PostRegistration> registrations = registrationRepository.findByPostId(postId);
+        List<Long> userIds = registrations.stream().map(PostRegistration::getUserId).collect(Collectors.toList());
+        List<User> users = userRepository.findAllById(userIds);
+        return users.stream().map(u -> UserDTO.builder()
+                .id(u.getId())
+                .username(u.getUsername())
+                .nickname(u.getNickname())
+                .avatar(u.getAvatar())
+                .build()).collect(Collectors.toList());
     }
 }
