@@ -137,7 +137,7 @@
             }
         }
 
-        async function handleLogin(event) {
+        window.handleLogin = async function(event) {
             event.preventDefault();
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
@@ -158,7 +158,7 @@
             } catch (e) { showMessage('操作失败', 'error'); }
         }
 
-        async function handleRegister(event) {
+        window.handleRegister = async function(event) {
             event.preventDefault();
             const username = document.getElementById('regUsername').value.trim();
             const nickname = document.getElementById('regNickname').value.trim();
@@ -185,7 +185,7 @@
             } catch (e) { showMessage('注册失败', 'error'); }
         }
 
-        function showForgotPassword() {
+        window.showForgotPassword = function() {
             showMessage('请联系管理员重置密码。邮箱：admin@greengrassland.com');
         }
 
@@ -1209,7 +1209,7 @@
             } catch(e) {}
         }
 
-        function generatePoster(post) {
+        window.generatePoster = function(post) {
             var canvas = document.createElement('canvas');
             canvas.width = 600; canvas.height = 800;
             var ctx = canvas.getContext('2d');
