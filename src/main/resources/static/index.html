@@ -27,6 +27,31 @@
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
             --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+        }
+
+        [data-theme="dark"] {
+            --primary: #34d399;
+            --primary-dark: #10b981;
+            --primary-light: #6ee7b7;
+            --primary-bg: #064e3b;
+            --accent: #fbbf24;
+            --accent-light: #78350f;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-hover: #334155;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: #334155;
+            --border-light: #1e293b;
+            --danger: #f87171;
+            --danger-light: #450a0a;
+            --info: #60a5fa;
+            --info-light: #172554;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow: 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.4), 0 2px 4px rgba(0,0,0,0.3);
+            color-scheme: dark;
             --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
             --shadow-xl: 0 20px 40px rgba(0,0,0,0.1);
             --radius-sm: 8px;
@@ -1962,6 +1987,7 @@
                 <span class="header-subtitle">校园同好活动平台</span>
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
+                <button class="notification-icon" onclick="toggleDarkMode()" id="darkModeBtn" title="暗色模式">🌙</button>
                 <button class="notification-icon" onclick="toggleNotificationModal()" id="notificationIcon" title="通知">🔔
                     <span class="notification-badge" id="notificationBadge">0</span>
                 </button>
@@ -3464,6 +3490,23 @@
             }).join('');
         }
 
+        function sharePost(postId) {
+            const url = window.location.origin + '/?post=' + postId;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(function() {
+                    showMessage('链接已复制到剪贴板！');
+                });
+            } else {
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showMessage('链接已复制！');
+            }
+        }
+
         // 关闭详情模态框
         function closePostDetail() {
             const modal = document.getElementById('postDetailModal');
@@ -3549,7 +3592,8 @@
                                 onclick="toggleLike(${post.id})" id="likeBtn${post.id}">
                             👍 ${post.likeCount || 0}
                         </button>
-                        ${post.isRegistered 
+                        <button class="detail-action-btn" onclick="sharePost(${post.id})" title="复制链接">🔗 分享</button>
+                        ${post.isRegistered
                             ? `<button class="btn btn-danger" onclick="cancelRegistrationFromDetail(${post.id})">取消报名</button>`
                             : `<button class="btn btn-success" onclick="registerPostFromDetail(${post.id})">报名</button>`
                         }
@@ -4714,8 +4758,18 @@
         window.addEventListener('offline', function() { showOfflineBanner('网络连接已断开', false); });
         window.addEventListener('online', function() { showOfflineBanner('网络已恢复', true); });
 
+        // 暗色模式
+        function getDarkMode() { return localStorage.getItem('dark_mode') === 'true'; }
+        function setDarkMode(on) {
+            document.documentElement.setAttribute('data-theme', on ? 'dark' : 'light');
+            document.getElementById('darkModeBtn').textContent = on ? '☀️' : '🌙';
+            localStorage.setItem('dark_mode', on);
+        }
+        function toggleDarkMode() { setDarkMode(!getDarkMode()); }
+
         // 页面加载时检查登录状态
         window.onload = function() {
+            if (getDarkMode()) setDarkMode(true);
             updateUserInfo();
             connectWebSocket();
             lazyObserver = initLazyLoading();
