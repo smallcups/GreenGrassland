@@ -42,6 +42,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-production-change-me-min-256-bits}
+      SPRING_PROFILES_ACTIVE: prod
     volumes:
       - uploads_data:/app/uploads
     depends_on:

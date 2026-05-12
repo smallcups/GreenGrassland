@@ -143,17 +143,13 @@ public class PostServiceImpl implements PostService {
                 distanceMap.put(postId, Math.round(distance * 10.0) / 10.0);
             }
             List<Post> posts = ids.isEmpty() ? List.of() : postRepository.findAllById(ids);
+            // 保持距离排序
             Map<Long, Post> postMap = new HashMap<>();
             for (Post p : posts) postMap.put(p.getId(), p);
-            dtos = new ArrayList<>();
-            for (Long id : ids) {
-                Post post = postMap.get(id);
-                if (post == null) continue;
-                boolean isRegistered = currentUserId != null
-                        && registrationRepository.findPostIdsByUserId(currentUserId).contains(post.getId());
-                PostDTO dto = convertToDTO(post, currentUserId, isRegistered, false);
-                dto.setDistance(distanceMap.get(id));
-                dtos.add(dto);
+            List<Post> orderedPosts = ids.stream().map(postMap::get).filter(p -> p != null).collect(Collectors.toList());
+            dtos = batchConvertToDTOs(orderedPosts, currentUserId, false);
+            for (int i = 0; i < orderedPosts.size(); i++) {
+                dtos.get(i).setDistance(distanceMap.get(orderedPosts.get(i).getId()));
             }
             totalElements = distPage.getTotalElements();
             totalPages = distPage.getTotalPages();
