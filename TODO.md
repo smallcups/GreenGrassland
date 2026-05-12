@@ -110,7 +110,7 @@
 ## 七、后端架构
 
 ### 7.1 测试
-- [ ] 单元测试（Service 层核心逻辑）
+- [x] 单元测试（Service 层核心逻辑）
 - [ ] 集成测试（Repository 层、Controller 层）
 - [ ] API 测试覆盖率目标 70%+
 
@@ -121,10 +121,10 @@
 - [ ] API 响应压缩（Gzip）
 
 ### 7.3 运维
-- [ ] Docker 容器化
-- [ ] docker-compose 一键部署（含 MySQL、Redis）
+- [x] Docker 容器化
+- [x] docker-compose 一键部署（含 MySQL、Redis）
 - [ ] 日志收集（ELK 或简单的 logback 文件轮转）
-- [ ] 健康检查端点 `/actuator/health`
+- [x] 健康检查端点 `/actuator/health`
 - [ ] CI/CD（GitHub Actions 自动构建部署）
 
 ## 八、数据与增长

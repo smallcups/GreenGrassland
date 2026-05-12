@@ -6,6 +6,7 @@ import com.greengrassland.dto.ApiResponse;
 import com.greengrassland.dto.UserDTO;
 import com.greengrassland.dto.UserLoginDTO;
 import com.greengrassland.dto.UserRegisterDTO;
+import com.greengrassland.dto.UserPasswordDTO;
 import com.greengrassland.dto.UserUpdateDTO;
 import com.greengrassland.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -101,5 +102,20 @@ public class UserController {
 
         UserDTO userDTO = userService.updateProfile(userId, updateDTO);
         return ResponseEntity.ok(ApiResponse.success(userDTO));
+    }
+
+    /**
+     * 修改密码
+     */
+    @PostMapping("/password")
+    public ResponseEntity<ApiResponse<?>> updatePassword(@Valid @RequestBody UserPasswordDTO passwordDTO,
+                                                          HttpServletRequest request) {
+        Long userId = SessionConfig.getCurrentUserId(request);
+        if (userId == null) {
+            return ResponseEntity.ok(ApiResponse.error("请先登录"));
+        }
+
+        userService.updatePassword(userId, passwordDTO);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

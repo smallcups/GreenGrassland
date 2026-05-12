@@ -2,6 +2,7 @@ package com.greengrassland.service.impl;
 
 import com.greengrassland.dto.UserDTO;
 import com.greengrassland.dto.UserLoginDTO;
+import com.greengrassland.dto.UserPasswordDTO;
 import com.greengrassland.dto.UserRegisterDTO;
 import com.greengrassland.dto.UserUpdateDTO;
 import com.greengrassland.entity.User;
@@ -134,6 +135,24 @@ public class UserServiceImpl implements UserService {
 
         user = userRepository.save(user);
         return convertToDTO(user);
+    }
+
+    @Override
+    @Transactional
+    public void updatePassword(Long userId, UserPasswordDTO passwordDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("用户不存在"));
+
+        if (!passwordEncoder.matches(passwordDTO.getOldPassword(), user.getPassword())) {
+            throw new BusinessException("当前密码不正确");
+        }
+
+        if (passwordDTO.getNewPassword().length() < 6) {
+            throw new BusinessException("新密码长度不能少于6位");
+        }
+
+        user.setPassword(passwordEncoder.encode(passwordDTO.getNewPassword()));
+        userRepository.save(user);
     }
 
     /**

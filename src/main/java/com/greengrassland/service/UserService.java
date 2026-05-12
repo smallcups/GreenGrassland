@@ -2,6 +2,7 @@ package com.greengrassland.service;
 
 import com.greengrassland.dto.UserDTO;
 import com.greengrassland.dto.UserLoginDTO;
+import com.greengrassland.dto.UserPasswordDTO;
 import com.greengrassland.dto.UserRegisterDTO;
 import com.greengrassland.dto.UserUpdateDTO;
 
@@ -39,4 +40,9 @@ public interface UserService {
      * 更新用户资料
      */
     UserDTO updateProfile(Long userId, UserUpdateDTO updateDTO);
+
+    /**
+     * 修改密码
+     */
+    void updatePassword(Long userId, UserPasswordDTO passwordDTO);
 }
