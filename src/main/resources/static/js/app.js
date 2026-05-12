@@ -2774,6 +2774,18 @@
         // - 通知: escapeHtml ✅
         // - 用户昵称在卡片中: 通过 DOM textContent ✅
 
+        // 前端错误监控
+        window.onerror = function(msg, url, line, col, error) {
+            console.error('[Error]', msg, 'at', url, ':', line);
+            try {
+                var payload = JSON.stringify({ message: msg, url: url, line: line, col: col, time: new Date().toISOString() });
+                if (navigator.sendBeacon) navigator.sendBeacon('/api/error/report', payload);
+            } catch(e) {}
+        };
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('[Promise Error]', e.reason);
+        });
+
         // 页面加载时检查登录状态
         window.onload = function() {
             if (getDarkMode()) setDarkMode(true);
