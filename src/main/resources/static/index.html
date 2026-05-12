@@ -1973,6 +1973,26 @@
         }
 
         .offline-banner.online { background: #10b981; }
+
+        .hot-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .hot-tag {
+            padding: 4px 12px;
+            background: var(--surface-hover);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--text-secondary);
+        }
+
+        .hot-tag:hover { background: var(--primary-bg); border-color: var(--primary); color: var(--primary-dark); }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
@@ -2074,6 +2094,7 @@
                         <button class="filter-btn" onclick="toggleFilterPanel()">⚙ 筛选</button>
                     </div>
                     <div id="searchHistory" class="search-history" style="display:none;"></div>
+                    <div class="hot-tags-container" id="hotTags"></div>
                     <div id="filterPanel" class="filter-panel hidden">
                         <div class="filter-row">
                             <label>位置</label>
@@ -4767,6 +4788,69 @@
         }
         function toggleDarkMode() { setDarkMode(!getDarkMode()); }
 
+        // 下拉刷新
+        let pullStartY = 0;
+        let pulling = false;
+
+        function initPullToRefresh() {
+            const postList = document.getElementById('postList');
+            if (!postList) return;
+
+            postList.addEventListener('touchstart', function(e) {
+                if (window.scrollY === 0) {
+                    pullStartY = e.touches[0].clientY;
+                    pulling = true;
+                }
+            }, { passive: true });
+
+            postList.addEventListener('touchmove', function(e) {
+                if (!pulling) return;
+                const dy = e.touches[0].clientY - pullStartY;
+                if (dy > 60) {
+                    pulling = false;
+                    loadPosts();
+                }
+            }, { passive: true });
+
+            postList.addEventListener('touchend', function() { pulling = false; });
+        }
+
+        // 图片压缩
+        function compressImage(file, maxWidth, quality) {
+            return new Promise(function(resolve) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let w = img.width, h = img.height;
+                        if (w > maxWidth) { h = h * maxWidth / w; w = maxWidth; }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        canvas.toBlob(function(blob) { resolve(blob); }, file.type, quality || 0.8);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // 热门标签
+        function renderHotTags() {
+            const container = document.getElementById('hotTags');
+            if (!container) return;
+            const tags = [
+                { label: '🏀 打球', type: 'BALL_GAME' },
+                { label: '🎲 桌游', type: 'BOARD_GAME' },
+                { label: '📚 学习', type: 'STUDY_GROUP' },
+                { label: '🎉 拼活动', type: 'GROUP_ACTIVITY' },
+                { label: '🐾 宠物', type: 'PET_SOCIAL' }
+            ];
+            container.innerHTML = tags.map(function(t) {
+                return '<span class="hot-tag" onclick="document.getElementById(\'searchType\').value=\'' + t.type + '\';searchPosts()">' + t.label + '</span>';
+            }).join('');
+        }
+
         // 页面加载时检查登录状态
         window.onload = function() {
             if (getDarkMode()) setDarkMode(true);
@@ -4774,6 +4858,8 @@
             connectWebSocket();
             lazyObserver = initLazyLoading();
             requestNotificationPermission();
+            initPullToRefresh();
+            renderHotTags();
         };
     </script>
 </body>
