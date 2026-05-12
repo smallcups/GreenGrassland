@@ -125,7 +125,7 @@
 - [x] docker-compose 一键部署（含 MySQL、Redis）
 - [x] 日志收集（ELK 或简单的 logback 文件轮转）
 - [x] 健康检查端点 `/actuator/health`
-- [ ] CI/CD（GitHub Actions 自动构建部署）
+- [x] CI/CD（GitHub Actions 自动构建部署）
 
 ## 八、数据与增长
 
