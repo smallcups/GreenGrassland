@@ -70,10 +70,10 @@ public class Post {
     @Column(nullable = false, length = 200)
     private String location;
 
-    @Column
+    @Column(columnDefinition = "DECIMAL(10,7)")
     private Double latitude;
 
-    @Column
+    @Column(columnDefinition = "DECIMAL(10,7)")
     private Double longitude;
 
     @Enumerated(EnumType.STRING)

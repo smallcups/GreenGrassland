@@ -16,6 +16,8 @@ spring:
       mode: never
   session:
     store-type: none
+  cache:
+    type: none
 
 file:
   upload-dir: ./test-uploads
