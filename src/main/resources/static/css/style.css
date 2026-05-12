@@ -291,6 +291,12 @@
 
         .notification-mark-all:hover { background: var(--primary-bg); }
 
+        .hero-section { background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%); border-radius: var(--radius-lg); padding: 48px 24px; text-align: center; margin-bottom: 20px; }
+        .hero-title { font-size: 28px; font-weight: 800; color: white; margin-bottom: 8px; }
+        .hero-subtitle { font-size: 15px; color: rgba(255,255,255,0.85); margin-bottom: 20px; }
+        .hero-cta { padding: 12px 32px; background: white; color: #059669; border: none; border-radius: var(--radius-full); font-size: 16px; font-weight: 700; cursor: pointer; }
+        .hero-cta:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+
         .notification-list { max-height: 460px; overflow-y: auto; }
 
         .notification-item {

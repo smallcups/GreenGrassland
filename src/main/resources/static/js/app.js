@@ -197,6 +197,7 @@
                 showMessage('已登出');
                 document.getElementById('userInfo').classList.add('hidden');
                 document.getElementById('currentUsername').textContent = '';
+                updateHeroVisibility();
                 // 登出后显示登录和注册标签
                 document.getElementById('loginTab').classList.remove('hidden');
                 document.getElementById('registerTab').classList.remove('hidden');
@@ -215,11 +216,8 @@
                 window.currentUserId = user.id; // 保存当前用户ID
             initNotificationPolling();
                 document.getElementById('userInfo').classList.remove('hidden');
+                updateHeroVisibility();
                 // 登录后隐藏登录和注册标签
-                document.getElementById('loginTab').classList.add('hidden');
-                document.getElementById('registerTab').classList.add('hidden');
-                // 切换到活动列表标签
-                switchToTab('posts');
             } else {
                 try {
                     const result = await apiRequest('/user/current');
@@ -836,7 +834,11 @@
                                 </div>
                             </div>
                             <div class="post-actions">
-                                ${post.isRegistered 
+                                ${post.status === 'FINISHED' || post.status === 'CANCELLED'
+                                    ? `<button class="post-action-btn" style="background:#d1d5db;color:#6b7280;cursor:default;">${post.status === 'FINISHED' ? '已结束' : '已取消'}</button>`
+                                    : post.status === 'FULL'
+                                    ? `<button class="post-action-btn" style="background:#fef3c7;color:#92400e;cursor:default;">已满员</button>`
+                                    : post.isRegistered
                                     ? `<button class="post-action-btn btn-outline" onclick="cancelRegistration(${post.id}); event.stopPropagation();">已报名</button>`
                                     : `<button class="post-action-btn btn-primary" onclick="registerPost(${post.id}); event.stopPropagation();">报名</button>`
                                 }
@@ -2576,6 +2578,43 @@
             } catch(e) {}
         }
 
+        // Hero 区控制
+        function updateHeroVisibility() {
+            var hero = document.getElementById('heroSection');
+            var userInfo = document.getElementById('userInfo');
+            if (hero) hero.style.display = (userInfo && userInfo.classList.contains('hidden')) ? 'block' : 'none';
+        }
+
+        // 搜索自动补全
+        var searchTitles = [];
+        function initSearchAutocomplete() {
+            var input = document.getElementById('searchKeyword');
+            if (!input) return;
+            var list = document.createElement('div');
+            list.id = 'searchSuggestions';
+            list.style.cssText = 'position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);max-height:200px;overflow-y:auto;z-index:100;width:100%;display:none;box-shadow:var(--shadow-md);';
+            input.parentElement.style.position = 'relative';
+            input.parentElement.appendChild(list);
+
+            input.addEventListener('input', function() {
+                var val = this.value.trim().toLowerCase();
+                if (val.length < 2) { list.style.display = 'none'; return; }
+                var matches = searchTitles.filter(function(t) { return t.toLowerCase().indexOf(val) >= 0; }).slice(0, 5);
+                if (matches.length === 0) { list.style.display = 'none'; return; }
+                list.innerHTML = matches.map(function(t) { return '<div style="padding:8px 12px;cursor:pointer;font-size:13px;color:var(--text);" onmouseover="this.style.background=\'var(--surface-hover)\'" onmouseout="this.style.background=\'transparent\'" onclick="document.getElementById(\'searchKeyword\').value=\'' + t.replace(/'/g, "\\'") + '\';document.getElementById(\'searchSuggestions\').style.display=\'none\';searchPosts();">' + t + '</div>'; }).join('');
+                list.style.display = 'block';
+            });
+            document.addEventListener('click', function(e) { if (e.target !== input) list.style.display = 'none'; });
+
+            // 加载活动标题
+            apiRequest('/post?page=1&pageSize=50').then(function(r) {
+                if (r.code === 200) {
+                    var posts = r.data.content || r.data;
+                    searchTitles = posts.map(function(p) { return p.title; }).filter(Boolean);
+                }
+            }).catch(function(){});
+        }
+
         // 精选活动
         async function loadFeaturedPosts() {
             try {
@@ -2687,6 +2726,8 @@
             loadFeaturedPosts();
             loadRecommendPosts();
             initInfiniteScroll();
+            initSearchAutocomplete();
+            updateHeroVisibility();
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/sw.js');
             }
