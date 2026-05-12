@@ -4898,6 +4898,23 @@
             }).join('');
         }
 
+        // 新人引导
+        function showOnboarding() {
+            if (localStorage.getItem('onboarding_done')) return;
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            overlay.innerHTML = '<div style="background:var(--surface);border-radius:16px;padding:32px;max-width:360px;text-align:center;color:var(--text);"><h2 style="margin-bottom:12px;">🌿 欢迎来到青青草原！</h2><p style="color:var(--text-secondary);margin-bottom:6px;">🔍 搜索感兴趣的活动</p><p style="color:var(--text-secondary);margin-bottom:6px;">📍 开启定位发现附近活动</p><p style="color:var(--text-secondary);margin-bottom:6px;">💬 报名后即可加入群聊</p><p style="color:var(--text-secondary);margin-bottom:18px;">👤 完善个人资料获得推荐</p><button onclick="this.parentElement.parentElement.remove();localStorage.setItem(\'onboarding_done\',\'1\');" style="padding:10px 32px;background:var(--primary);color:white;border:none;border-radius:24px;font-size:16px;cursor:pointer;">开始探索</button></div>';
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.remove(); localStorage.setItem('onboarding_done', '1'); } });
+        }
+
+        // XSS 审计：确保所有用户内容经过 escapeHtml
+        // - 帖子标题/内容: highlightText → escapeHtml ✅
+        // - 评论: escapeHtml ✅
+        // - 聊天消息: escapeHtml ✅
+        // - 通知: escapeHtml ✅
+        // - 用户昵称在卡片中: 通过 DOM textContent ✅
+
         // 页面加载时检查登录状态
         window.onload = function() {
             if (getDarkMode()) setDarkMode(true);
@@ -4907,6 +4924,7 @@
             requestNotificationPermission();
             initPullToRefresh();
             renderHotTags();
+            setTimeout(showOnboarding, 1000);
         };
     </script>
 </body>
