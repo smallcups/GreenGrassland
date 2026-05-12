@@ -101,6 +101,8 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     public void markAsRead(Long roomId, Long userId) {
         chatRepository.markAsReadByRoomIdAndReceiverId(roomId, userId);
+        messagingTemplate.convertAndSend("/topic/chat.read." + roomId,
+                java.util.Map.of("userId", userId, "roomId", roomId));
     }
 
     @Override
