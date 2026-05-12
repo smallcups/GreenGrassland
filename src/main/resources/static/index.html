@@ -1913,6 +1913,13 @@
         .skeleton-line.medium { width: 80%; }
 
         .skeleton-image { width: 100%; height: 200px; margin-bottom: 10px; border-radius: var(--radius); }
+
+        .typing-indicator {
+            padding: 4px 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
@@ -4003,8 +4010,12 @@
             });
         }
 
+        let typingSub = null;
+        let typingTimer = null;
+
         function subscribeToRoom(roomId, type) {
             if (wsSubscription) { wsSubscription.unsubscribe(); wsSubscription = null; }
+            if (typingSub) { typingSub.unsubscribe(); typingSub = null; }
             if (!stompClient || !stompClient.connected) return;
             const topic = type === 'group' ? '/topic/group.room.' + roomId : '/topic/chat.room.' + roomId;
             wsSubscription = stompClient.subscribe(topic, function(msg) {
@@ -4013,6 +4024,37 @@
                     appendChatMessage(chat, type);
                 }
                 loadMessages();
+            });
+            const typingTopic = type === 'group' ? '/topic/group.typing.' + roomId : '/topic/chat.typing.' + roomId;
+            typingSub = stompClient.subscribe(typingTopic, function(msg) {
+                const data = JSON.parse(msg.body);
+                const currentUserId = getCurrentUserId();
+                if (data.userId != currentUserId) {
+                    showTypingIndicator(data.nickname || '对方');
+                }
+            });
+        }
+
+        function showTypingIndicator(name) {
+            const el = document.getElementById('typingIndicator');
+            if (el) {
+                el.textContent = name + ' 正在输入...';
+                el.style.display = 'block';
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(function() { el.style.display = 'none'; }, 2000);
+            }
+        }
+
+        function sendTypingEvent() {
+            if (!stompClient || !stompClient.connected || !currentChatRoomId) return;
+            stompClient.publish({
+                destination: '/app/typing',
+                body: JSON.stringify({
+                    roomId: currentChatRoomId,
+                    type: currentChatRoomType,
+                    userId: getCurrentUserId(),
+                    nickname: document.getElementById('currentUsername').textContent
+                })
             });
         }
 
@@ -4030,6 +4072,9 @@
                 </div>`;
             container.insertAdjacentHTML('beforeend', msgHtml);
             container.scrollTop = container.scrollHeight;
+            if (!isMe) {
+                notifyDesktop(chat.senderNickname || '新消息', chat.content);
+            }
         }
 
         // 消息相关变量
@@ -4210,8 +4255,9 @@
                 <div class="chat-messages" id="chatMessagesContainer">
                     ${messagesHtml}
                 </div>
+                <div id="typingIndicator" class="typing-indicator" style="display:none;"></div>
                 <div class="chat-input-area">
-                    <textarea id="chatMessageInput" class="chat-input" placeholder="输入消息..." onkeydown="if(event.key==='Enter' && !event.shiftKey) {event.preventDefault(); sendChatMessage();}"></textarea>
+                    <textarea id="chatMessageInput" class="chat-input" placeholder="输入消息..." onkeydown="if(event.key==='Enter' && !event.shiftKey) {event.preventDefault(); sendChatMessage();}" oninput="sendTypingEvent()"></textarea>
                     <button class="btn btn-primary" onclick="sendChatMessage()">发送</button>
                 </div>
             `;
@@ -4326,8 +4372,9 @@
                 <div class="chat-messages" id="chatMessagesContainer">
                     ${messagesHtml}
                 </div>
+                <div id="typingIndicator" class="typing-indicator" style="display:none;"></div>
                 <div class="chat-input-area">
-                    <textarea id="groupChatMessageInput" class="chat-input" placeholder="输入消息..." onkeydown="if(event.key==='Enter' && !event.shiftKey) {event.preventDefault(); sendGroupChatMessage();}"></textarea>
+                    <textarea id="groupChatMessageInput" class="chat-input" placeholder="输入消息..." onkeydown="if(event.key==='Enter' && !event.shiftKey) {event.preventDefault(); sendGroupChatMessage();}" oninput="sendTypingEvent()"></textarea>
                     <button class="btn btn-primary" onclick="sendGroupChatMessage()">发送</button>
                 </div>
             `;
@@ -4567,11 +4614,25 @@
             }
         }
 
+        // 浏览器桌面通知
+        function requestNotificationPermission() {
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        function notifyDesktop(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification(title, { body: body, icon: '/images/default-avatar.svg' });
+            }
+        }
+
         // 页面加载时检查登录状态
         window.onload = function() {
             updateUserInfo();
             connectWebSocket();
             lazyObserver = initLazyLoading();
+            requestNotificationPermission();
         };
     </script>
 </body>

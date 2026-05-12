@@ -28,4 +28,20 @@ public class WebSocketOnlineController {
         }
         return Map.of("online", false);
     }
+
+    @MessageMapping("/typing")
+    public void typing(Map<String, Object> payload) {
+        Object roomIdObj = payload.get("roomId");
+        Object typeObj = payload.get("type");
+        Object userIdObj = payload.get("userId");
+        Object nicknameObj = payload.get("nickname");
+        if (roomIdObj == null || typeObj == null) return;
+        String roomId = roomIdObj.toString();
+        String roomType = typeObj.toString();
+        String topic = "group".equals(roomType) ? "/topic/group.typing." + roomId : "/topic/chat.typing." + roomId;
+        messagingTemplate.convertAndSend(topic,
+                Map.of("userId", userIdObj != null ? userIdObj : 0,
+                       "nickname", nicknameObj != null ? nicknameObj : "",
+                       "typing", true));
+    }
 }
