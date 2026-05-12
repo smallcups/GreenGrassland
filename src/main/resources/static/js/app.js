@@ -137,113 +137,56 @@
             }
         }
 
-        // 智能登录/注册（二合一）：有账号自动登录，没账号自动注册
-        window.isRegisterMode = false;
-
-        window.toggleRegisterFields = function(e) {
-            e.preventDefault();
-            window.isRegisterMode = !window.isRegisterMode;
-            const fields = document.getElementById('registerFields');
-            const title = document.getElementById('authTitle');
-            const btn = document.getElementById('authSubmitBtn');
-            const link = document.querySelector('#login .form-container a');
-            if (window.isRegisterMode) {
-                fields.style.display = 'block';
-                title.textContent = '创建新账号 🌱';
-                btn.textContent = '注 册';
-                link.textContent = '已有账号？直接登录 →';
-            } else {
-                fields.style.display = 'none';
-                title.textContent = '欢迎回来 👋';
-                btn.textContent = '登 录';
-                link.textContent = '没有账号？创建新账号 →';
-            }
-        };
-
-        async function smartAuth(event) {
+        async function handleLogin(event) {
             event.preventDefault();
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value;
-            const nickname = document.getElementById('regNickname').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-
-            if (window.isRegisterMode) {
-                // 注册模式：先注册再登录
-                try {
-                    const regResult = await apiRequest('/user/register', {
-                        method: 'POST',
-                        body: JSON.stringify({ username, password, nickname: nickname || username, email })
-                    });
-                    if (regResult.code === 200) {
-                        showMessage('注册成功，正在登录...');
-                        const loginResult = await apiRequest('/user/login', {
-                            method: 'POST',
-                            body: JSON.stringify({ username, password })
-                        });
-                        if (loginResult.code === 200) {
-                            if (loginResult.data.token) setToken(loginResult.data.token);
-                            showMessage('欢迎你，' + (loginResult.data.nickname || loginResult.data.username) + '！');
-                            updateUserInfo(loginResult.data);
-                            clearAuthForm();
-                        } else {
-                            showMessage(loginResult.message || '自动登录失败', 'error');
-                        }
-                    } else {
-                        showMessage(regResult.message || '注册失败', 'error');
-                    }
-                } catch (error) {
-                    showMessage('注册失败', 'error');
+            try {
+                const result = await apiRequest('/user/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password })
+                });
+                if (result.code === 200) {
+                    if (result.data.token) setToken(result.data.token);
+                    showMessage('欢迎回来，' + (result.data.nickname || result.data.username) + '！');
+                    updateUserInfo(result.data);
+                    document.getElementById('loginUsername').value = '';
+                    document.getElementById('loginPassword').value = '';
+                } else {
+                    showMessage(result.message || '登录失败', 'error');
                 }
-            } else {
-                // 登录模式：先尝试登录，失败则自动注册
-                try {
-                    const loginResult = await apiRequest('/user/login', {
-                        method: 'POST',
-                        body: JSON.stringify({ username, password })
-                    });
-                    if (loginResult.code === 200) {
-                        if (loginResult.data.token) setToken(loginResult.data.token);
-                        showMessage('欢迎回来，' + (loginResult.data.nickname || loginResult.data.username) + '！');
-                        updateUserInfo(loginResult.data);
-                        clearAuthForm();
-                    } else {
-                        // 登录失败，自动尝试注册
-                        const regResult = await apiRequest('/user/register', {
-                            method: 'POST',
-                            body: JSON.stringify({ username, password, nickname: nickname || username, email })
-                        });
-                        if (regResult.code === 200) {
-                            showMessage('账号已创建，正在登录...');
-                            const loginResult2 = await apiRequest('/user/login', {
-                                method: 'POST',
-                                body: JSON.stringify({ username, password })
-                            });
-                            if (loginResult2.code === 200) {
-                                if (loginResult2.data.token) setToken(loginResult2.data.token);
-                                showMessage('欢迎你，' + (loginResult2.data.nickname || loginResult2.data.username) + '！');
-                                updateUserInfo(loginResult2.data);
-                                clearAuthForm();
-                            }
-                        } else if (regResult.message && regResult.message.includes('用户名已存在')) {
-                            showMessage('密码错误，请重试', 'error');
-                        } else {
-                            showMessage(regResult.message || '登录失败', 'error');
-                        }
-                    }
-                } catch (error) {
-                    showMessage('操作失败', 'error');
-                }
-            }
+            } catch (e) { showMessage('操作失败', 'error'); }
         }
 
-        function clearAuthForm() {
-            document.getElementById('loginUsername').value = '';
-            document.getElementById('loginPassword').value = '';
-            document.getElementById('regNickname').value = '';
-            document.getElementById('regEmail').value = '';
-            if (window.isRegisterMode) {
-                toggleRegisterFields({ preventDefault: () => {} });
-            }
+        async function handleRegister(event) {
+            event.preventDefault();
+            const username = document.getElementById('regUsername').value.trim();
+            const nickname = document.getElementById('regNickname').value.trim();
+            const password = document.getElementById('regPassword').value;
+            const confirm = document.getElementById('regConfirmPassword').value;
+            if (password !== confirm) { showMessage('两次密码不一致', 'error'); return; }
+            if (password.length < 6) { showMessage('密码至少6位', 'error'); return; }
+            try {
+                const result = await apiRequest('/user/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ username, password, nickname: nickname || username })
+                });
+                if (result.code === 200) {
+                    showMessage('注册成功！请登录');
+                    document.getElementById('regUsername').value = '';
+                    document.getElementById('regNickname').value = '';
+                    document.getElementById('regPassword').value = '';
+                    document.getElementById('regConfirmPassword').value = '';
+                    document.getElementById('regAgreeToS').checked = false;
+                    switchTab('login');
+                } else {
+                    showMessage(result.message || '注册失败', 'error');
+                }
+            } catch (e) { showMessage('注册失败', 'error'); }
+        }
+
+        function showForgotPassword() {
+            showMessage('请联系管理员重置密码。邮箱：admin@greengrassland.com');
         }
 
         // 登出
