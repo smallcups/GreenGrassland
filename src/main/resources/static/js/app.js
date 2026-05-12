@@ -1209,6 +1209,65 @@
             } catch(e) {}
         }
 
+        function generatePoster(post) {
+            var canvas = document.createElement('canvas');
+            canvas.width = 600; canvas.height = 800;
+            var ctx = canvas.getContext('2d');
+
+            // 背景渐变
+            var grad = ctx.createLinearGradient(0, 0, 600, 800);
+            grad.addColorStop(0, '#10b981'); grad.addColorStop(1, '#047857');
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 600, 800);
+
+            // 顶部装饰
+            ctx.fillStyle = 'rgba(255,255,255,0.1)';
+            ctx.beginPath(); ctx.arc(500, 100, 200, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(100, 700, 150, 0, Math.PI * 2); ctx.fill();
+
+            // 标题
+            ctx.fillStyle = 'white'; ctx.font = 'bold 36px -apple-system, sans-serif';
+            var title = post.title.length > 12 ? post.title.substring(0, 12) + '...' : post.title;
+            ctx.fillText(title, 40, 180);
+
+            // 类型标签
+            var typeMap = { 'BALL_GAME': '🏀 打球', 'BOARD_GAME': '🎲 桌游', 'PET_SOCIAL': '🐾 宠物', 'GROUP_ACTIVITY': '🎉 拼活动', 'STUDY_GROUP': '📚 学习' };
+            ctx.fillStyle = 'rgba(255,255,255,0.9)'; ctx.font = '20px -apple-system, sans-serif';
+            ctx.fillText(typeMap[post.type] || post.type, 40, 230);
+
+            // 信息卡片
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            var cardY = 280;
+            ctx.fillRect(30, cardY, 540, 300, 20);
+
+            ctx.fillStyle = 'white'; ctx.font = '18px -apple-system, sans-serif';
+            var lines = [
+                '📍 ' + (post.location || '未设置'),
+                '🕐 ' + (post.activityTime ? new Date(post.activityTime).toLocaleString('zh-CN') : '未设置'),
+                '👥 ' + (post.currentPeople || 0) + ' / ' + post.maxPeople + ' 人',
+                '👤 发布者：' + (post.nickname || post.username)
+            ];
+            lines.forEach(function(line, i) { ctx.fillText(line, 60, cardY + 50 + i * 50); });
+
+            // 底部
+            ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '14px -apple-system, sans-serif';
+            ctx.fillText('扫描二维码或访问 GreenGrassland', 150, 680);
+            ctx.fillText('找到你的校园搭子', 200, 710);
+            ctx.fillStyle = 'white'; ctx.font = 'bold 20px -apple-system, sans-serif';
+            ctx.fillText('🌿 GreenGrassland', 180, 760);
+
+            // 二维码占位
+            ctx.fillStyle = 'white'; ctx.fillRect(420, 580, 120, 120);
+            ctx.fillStyle = '#059669'; ctx.font = '12px sans-serif';
+            ctx.fillText('扫码加入', 445, 645);
+
+            // 弹窗展示
+            var modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;';
+            modal.innerHTML = '<div style="position:relative;"><img src="' + canvas.toDataURL() + '" style="max-width:90vw;max-height:90vh;border-radius:12px;"><button onclick="this.parentElement.parentElement.remove()" style="position:absolute;top:-10px;right:-10px;background:white;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;">✕</button><button onclick="var a=document.createElement(\'a\');a.href=this.parentElement.querySelector(\'img\').src;a.download=\'activity-poster.png\';a.click();" style="position:absolute;bottom:16px;right:16px;background:var(--primary);color:white;border:none;border-radius:20px;padding:8px 20px;font-size:14px;cursor:pointer;">💾 保存图片</button></div>';
+            document.body.appendChild(modal);
+            modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+        }
+
         function sharePost(postId) {
             const url = window.location.origin + '/?post=' + postId;
             if (navigator.clipboard) {
@@ -1312,6 +1371,7 @@
                             👍 ${post.likeCount || 0}
                         </button>
                         <button class="detail-action-btn" onclick="sharePost(${post.id})" title="复制链接">🔗 分享</button>
+                        <button class="detail-action-btn" onclick="generatePoster(currentDetailPost)" title="生成海报">🎨 海报</button>
                         ${post.isRegistered
                             ? `<span class="chat-entry-badge" onclick="event.stopPropagation();openGroupChat(${post.id})">💬 进入群聊</span><button class="btn btn-danger" onclick="cancelRegistrationFromDetail(${post.id})">取消报名</button>`
                             : `<button class="btn btn-success" onclick="registerPostFromDetail(${post.id})">报名</button>`
