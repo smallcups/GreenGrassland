@@ -10,16 +10,15 @@ import com.greengrassland.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 用户控制器
- */
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
+@Tag(name = "用户管理", description = "注册、登录、密码修改、个人资料")
 public class UserController {
 
     private final UserService userService;

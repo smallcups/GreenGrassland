@@ -6,6 +6,7 @@ import com.greengrassland.dto.PostCreateDTO;
 import com.greengrassland.dto.PostDTO;
 import com.greengrassland.dto.PostSearchDTO;
 import com.greengrassland.service.PostService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,12 +15,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * 活动控制器
- */
 @RestController
 @RequestMapping("/api/post")
 @RequiredArgsConstructor
+@Tag(name = "活动管理", description = "发布、搜索、报名、取消、删除活动")
 public class PostController {
 
     private final PostService postService;
