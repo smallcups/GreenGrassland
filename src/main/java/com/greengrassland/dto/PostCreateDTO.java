@@ -4,7 +4,10 @@ import com.greengrassland.entity.PostType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -12,6 +15,9 @@ import java.time.LocalDateTime;
  * 创建活动DTO
  */
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PostCreateDTO {
 
     @NotBlank(message = "标题不能为空")
@@ -31,8 +37,12 @@ public class PostCreateDTO {
     @NotBlank(message = "活动地点不能为空")
     private String location;
 
-    /**
-     * 图片URL列表（多个图片用逗号分隔）
-     */
+    private Double latitude;
+    private Double longitude;
+
     private String images;
+
+    private Boolean approvalMode;
+
+    private Boolean isSeries;
 }

@@ -21,7 +21,8 @@ public class PostDTO {
     private Long userId;
     private String username;
     private String nickname;
-    private String userAvatar; // 发布者头像
+    private String userAvatar;
+    private Long authorPostCount;
     private String title;
     private String content;
     private PostType type;
@@ -30,6 +31,11 @@ public class PostDTO {
     private LocalDateTime activityTime;
     private String location;
     private String images;
+    private Double latitude;
+    private Double longitude;
+    private Double distance;
+    private Boolean approvalMode;
+    private Boolean isSeries;
     private com.greengrassland.entity.PostStatus status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;

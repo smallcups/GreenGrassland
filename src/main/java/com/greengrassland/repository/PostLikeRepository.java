@@ -39,4 +39,10 @@ public interface PostLikeRepository extends JpaRepository<PostLike, Long> {
      */
     @org.springframework.data.jpa.repository.Query("SELECT pl.postId FROM PostLike pl WHERE pl.userId = :userId AND pl.postId IN :postIds")
     List<Long> findLikedPostIds(@org.springframework.data.repository.query.Param("userId") Long userId, @org.springframework.data.repository.query.Param("postIds") List<Long> postIds);
+
+    /**
+     * 统计用户发布的活动收到的总点赞数
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(pl) FROM PostLike pl JOIN Post p ON pl.postId = p.id WHERE p.userId = :userId")
+    long countByPostUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
 }

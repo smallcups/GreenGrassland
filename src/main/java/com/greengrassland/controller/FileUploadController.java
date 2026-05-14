@@ -12,9 +12,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HexFormat;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -37,11 +40,15 @@ public class FileUploadController {
      * 上传头像
      */
     @PostMapping("/avatar")
-    public ResponseEntity<ApiResponse<String>> uploadAvatar(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<ApiResponse<String>> uploadAvatar(@RequestParam(value = "file", required = false) MultipartFile file,
                                                              HttpServletRequest request) {
         Long userId = SessionConfig.getCurrentUserId(request);
         if (userId == null) {
             return ResponseEntity.ok(ApiResponse.error("请先登录"));
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.error("请选择要上传的文件"));
         }
 
         // 验证文件类型
@@ -58,6 +65,11 @@ public class FileUploadController {
         // 验证文件大小（5MB）
         if (file.getSize() > 5 * 1024 * 1024) {
             return ResponseEntity.ok(ApiResponse.error("文件大小不能超过5MB"));
+        }
+
+        // 验证文件真实类型（magic bytes）
+        if (!isValidImageFile(file)) {
+            return ResponseEntity.ok(ApiResponse.error("文件内容不是有效的图片"));
         }
 
         try {
@@ -87,11 +99,15 @@ public class FileUploadController {
     }
 
     @PostMapping("/post-image")
-    public ResponseEntity<ApiResponse<String>> uploadPostImage(@RequestParam("file") MultipartFile file,
+    public ResponseEntity<ApiResponse<String>> uploadPostImage(@RequestParam(value = "file", required = false) MultipartFile file,
                                                                 HttpServletRequest request) {
         Long userId = SessionConfig.getCurrentUserId(request);
         if (userId == null) {
             return ResponseEntity.ok(ApiResponse.error("请先登录"));
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.error("请选择要上传的文件"));
         }
 
         // 验证文件类型
@@ -108,6 +124,11 @@ public class FileUploadController {
         // 验证文件大小（5MB）
         if (file.getSize() > 5 * 1024 * 1024) {
             return ResponseEntity.ok(ApiResponse.error("文件大小不能超过5MB"));
+        }
+
+        // 验证文件真实类型
+        if (!isValidImageFile(file)) {
+            return ResponseEntity.ok(ApiResponse.error("文件内容不是有效的图片"));
         }
 
         try {
@@ -130,6 +151,26 @@ public class FileUploadController {
             return ResponseEntity.ok(ApiResponse.success(imageUrl));
         } catch (IOException e) {
             throw new BusinessException("文件上传失败：" + e.getMessage());
+        }
+    }
+
+    private boolean isValidImageFile(MultipartFile file) {
+        try (InputStream in = file.getInputStream()) {
+            byte[] header = new byte[12];
+            int read = in.read(header);
+            if (read < 4) return false;
+            String hex = HexFormat.of().formatHex(header);
+            // JPEG: FF D8 FF
+            if (hex.startsWith("ffd8ff")) return true;
+            // PNG: 89 50 4E 47
+            if (hex.startsWith("89504e47")) return true;
+            // GIF: 47 49 46 38
+            if (hex.startsWith("47494638")) return true;
+            // WebP: 52 49 46 46 ... 57 45 42 50
+            if (hex.startsWith("52494646") && hex.length() >= 24 && hex.substring(16, 24).equals("57454250")) return true;
+            return false;
+        } catch (IOException e) {
+            return false;
         }
     }
 

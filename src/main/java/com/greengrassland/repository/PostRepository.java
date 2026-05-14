@@ -1,6 +1,7 @@
 package com.greengrassland.repository;
 
 import com.greengrassland.entity.Post;
+import com.greengrassland.entity.PostStatus;
 import com.greengrassland.entity.PostType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -21,6 +23,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
      * 根据用户ID查找该用户发布的活动
      */
     List<Post> findByUserIdOrderByCreateTimeDesc(Long userId);
+
+    /**
+     * 统计用户发布的活动数
+     */
+    long countByUserId(Long userId);
 
     /**
      * 查找所有活动，按创建时间倒序
@@ -72,4 +79,43 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("SELECT p FROM Post p WHERE " +
            "(:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%'))")
     Page<Post> searchPostsByLocation(@Param("location") String location, Pageable pageable);
+
+    /**
+     * 按距离搜索（Haversine公式），返回帖子ID和距离
+     */
+    @Query(value = "SELECT p.id AS postId, " +
+           "(6371 * acos(cos(radians(:userLat)) * cos(radians(p.latitude)) * " +
+           "cos(radians(p.longitude) - radians(:userLng)) + sin(radians(:userLat)) * " +
+           "sin(radians(p.latitude)))) AS distance " +
+           "FROM post p " +
+           "WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL " +
+           "AND (:keyword IS NULL OR :keyword = '' OR p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%')) " +
+           "AND (:postType IS NULL OR p.type = :postType) " +
+           "AND (:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%')) " +
+           "HAVING distance < :maxDistance " +
+           "ORDER BY distance ASC",
+           countQuery = "SELECT count(*) FROM post p " +
+           "WHERE p.latitude IS NOT NULL AND p.longitude IS NOT NULL " +
+           "AND (:keyword IS NULL OR :keyword = '' OR p.title LIKE CONCAT('%', :keyword, '%') OR p.content LIKE CONCAT('%', :keyword, '%')) " +
+           "AND (:postType IS NULL OR p.type = :postType) " +
+           "AND (:location IS NULL OR :location = '' OR p.location LIKE CONCAT('%', :location, '%')) " +
+           "AND (6371 * acos(cos(radians(:userLat)) * cos(radians(p.latitude)) * " +
+           "cos(radians(p.longitude) - radians(:userLng)) + sin(radians(:userLat)) * " +
+           "sin(radians(p.latitude)))) < :maxDistance",
+           nativeQuery = true)
+    Page<Object[]> searchPostsByDistance(@Param("userLat") Double userLat,
+                                          @Param("userLng") Double userLng,
+                                          @Param("maxDistance") Double maxDistance,
+                                          @Param("keyword") String keyword,
+                                          @Param("postType") String postType,
+                                          @Param("location") String location,
+                                          Pageable pageable);
+
+    /**
+     * 查找活动已过期但仍处于活跃状态的帖子
+     */
+    @Query("SELECT p FROM Post p WHERE p.status IN :statuses AND p.activityTime IS NOT NULL AND p.activityTime < :now")
+    Page<Post> findByStatusInAndActivityTimeBefore(@Param("statuses") List<PostStatus> statuses,
+                                                     @Param("now") LocalDateTime now,
+                                                     Pageable pageable);
 }

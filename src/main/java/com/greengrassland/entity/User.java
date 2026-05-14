@@ -54,6 +54,18 @@ public class User {
     private String avatar;
 
     /**
+     * 个人简介
+     */
+    @Column(length = 500)
+    private String bio;
+
+    /**
+     * 兴趣标签（逗号分隔）
+     */
+    @Column(length = 500)
+    private String interestTags;
+
+    /**
      * 创建时间
      */
     @Column(name = "create_time", nullable = false, updatable = false)

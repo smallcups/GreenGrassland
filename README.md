@@ -1,288 +1,120 @@
 # GreenGrassland - 校园同好活动平台
 
-一个帮助大学生快速找到附近兴趣相同的人，一起进行打球、桌游、宠物社交、拼活动、学习小组的轻社交校园平台。
+帮助大学生快速找到附近兴趣相同的人，进行打球、桌游、宠物社交、拼活动、学习小组的轻社交校园平台。
 
 ## 技术栈
 
-### 后端
-- Java 17
-- Spring Boot 3.2.0
-- Spring Data JPA
-- MySQL 8
-- Session 认证
-- BCrypt 密码加密
-- Maven
-
-### 前端
-- 原生 HTML + CSS + JavaScript
-- Fetch API
+| 层级 | 技术 |
+|------|------|
+| 后端 | Java 17, Spring Boot 3.2, Spring Data JPA, Flyway |
+| 数据库 | MySQL 8.0, Redis 7 |
+| 实时通信 | WebSocket (STOMP over SockJS) |
+| 认证 | JWT Token + Session 双通道 |
+| 安全 | BCrypt, CSRF, XSS防护, 限流, magic bytes校验 |
+| 前端 | 原生 HTML/CSS/JS (312+2062+2746 行) |
+| 部署 | Docker + docker-compose |
+| CI/CD | GitHub Actions |
+| 文档 | Swagger / OpenAPI |
 
 ## 功能特性
 
 ### 用户系统
-- ✅ 用户注册
-- ✅ 用户登录
-- ✅ 用户登出
-- ✅ 获取当前用户信息
+- 注册/登录/登出 · JWT Token · 密码修改 · 个人简介(bio) · 兴趣标签 · 头像上传
 
 ### 活动系统
-- ✅ 发布活动
-- ✅ 活动列表
-- ✅ 活动详情
-- ✅ 我的发布
-- ✅ 我的报名
-- ✅ 删除活动（只能删除自己的）
+- 发布活动 · 活动列表(分页/无限滚动/下拉刷新) · 活动详情 · 搜索(关键词高亮+历史)
+- 地理位置(Haversine距离排序) · 活动状态(RECRUITING/FULL/ONGOING/FINISHED/CANCELLED)
+- 定时归档 · 满员自动停止报名 · 审核模式 · 系列活动标记
 
-### 报名系统
-- ✅ 报名活动
-- ✅ 取消报名
-- ✅ 防止重复报名
-- ✅ 限制最大人数
+### 社交互动
+- 报名/取消 · 参与者列表 · 点赞 · 收藏 · 评论(支持回复)
+- 关注/粉丝 · 共同关注 · 屏蔽用户 · 举报内容
+
+### 实时聊天
+- 私聊 + 群聊 · WebSocket 实时推送 · 在线状态绿点 · 正在输入提示 · 桌面通知
+
+### 前端体验
+- 暗色模式 · 骨架屏 · 图片懒加载 · 热门标签 · 精选活动 · 移动端底部导航
+- 网络断线提示 · 接口自动重试 · 表单离开提醒 · 新人引导 · 活动分享
+- 通知分类筛选 · 点击跳转 · Gzip 压缩 · Service Worker 离线缓存
+
+### 基础设施
+- Docker 一键部署 · Redis 缓存 · Flyway 数据库迁移 · Logback 日志轮转
+- 健康检查 · 接口限流 · CSRF/XSS/SQL注入全量防护 · 35 个自动化测试
+- GitHub Actions CI/CD · 环境变量配置 · 生产环境 profiles
 
 ## 快速开始
 
 ### 前置要求
+- Java 17+ · Maven 3.6+ · MySQL 8.0+ · Redis 7+
 
-1. **Java 17+**
-   ```bash
-   java -version
-   ```
+### Docker 部署（推荐）
+```bash
+cp .env.example .env
+# 编辑 .env 修改密码和密钥
+docker-compose up -d
+# 访问 http://localhost:8080
+```
 
-2. **Maven 3.6+**
-   ```bash
-   mvn -version
-   ```
+### 本地开发
+```bash
+# 1. 启动 MySQL 和 Redis
+# 2. 配置环境变量 (或使用默认值)
+# 3. 运行
+mvn spring-boot:run
+```
 
-3. **MySQL 8.0+**
-   ```bash
-   mysql --version
-   ```
+### 环境变量
 
-### 安装步骤
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| DB_HOST | localhost | 数据库地址 |
+| DB_PORT | 3306 | 数据库端口 |
+| DB_NAME | greengrassland | 数据库名 |
+| DB_USER | root | 数据库用户 |
+| DB_PASSWORD | - | 数据库密码（生产必改）|
+| REDIS_HOST | localhost | Redis地址 |
+| REDIS_PORT | 6379 | Redis端口 |
+| JWT_SECRET | - | JWT密钥（生产必改，256位+）|
 
-1. **克隆项目**
-   ```bash
-   cd /Users/wangqixiang/Desktop/青青草原
-   ```
+### API 文档
+启动后访问: http://localhost:8080/swagger-ui.html
 
-2. **创建数据库**
-   
-   登录MySQL后执行：
-   ```sql
-   CREATE DATABASE IF NOT EXISTS greengrassland DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
-   
-   或者执行 `src/main/resources/schema.sql` 文件：
-   ```bash
-   mysql -u root -p < src/main/resources/schema.sql
-   ```
-
-3. **配置数据库连接**
-   
-   编辑 `src/main/resources/application.yml`，修改数据库连接信息：
-   ```yaml
-   spring:
-     datasource:
-       url: jdbc:mysql://localhost:3306/greengrassland?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-       username: root  # 修改为你的MySQL用户名
-       password: root  # 修改为你的MySQL密码
-   ```
-
-4. **编译项目**
-   ```bash
-   mvn clean compile
-   ```
-
-5. **运行项目**
-   ```bash
-   mvn spring-boot:run
-   ```
-   
-   或者打包后运行：
-   ```bash
-   mvn clean package
-   java -jar target/greengrassland-1.0.0.jar
-   ```
-
-6. **访问应用**
-   
-   - 前端页面：http://localhost:8080/api/index.html
-   - API基础路径：http://localhost:8080/api
-
-## API 文档
-
-### 用户相关 API
-
-#### 1. 用户注册
-- **URL**: `/api/user/register`
-- **Method**: `POST`
-- **Request Body**:
-  ```json
-  {
-    "username": "testuser",
-    "password": "123456",
-    "nickname": "测试用户",
-    "email": "test@example.com"
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "code": 200,
-    "message": "成功",
-    "data": {
-      "id": 1,
-      "username": "testuser",
-      "nickname": "测试用户",
-      "email": "test@example.com"
-    }
-  }
-  ```
-
-#### 2. 用户登录
-- **URL**: `/api/user/login`
-- **Method**: `POST`
-- **Request Body**:
-  ```json
-  {
-    "username": "testuser",
-    "password": "123456"
-  }
-  ```
-
-#### 3. 用户登出
-- **URL**: `/api/user/logout`
-- **Method**: `POST`
-
-#### 4. 获取当前用户
-- **URL**: `/api/user/current`
-- **Method**: `GET`
-
-### 活动相关 API
-
-#### 1. 发布活动
-- **URL**: `/api/post`
-- **Method**: `POST`
-- **需要登录**: 是
-- **Request Body**:
-  ```json
-  {
-    "title": "一起打篮球",
-    "content": "周末想找人一起打篮球",
-    "type": "BALL_GAME",
-    "maxPeople": 10,
-    "activityTime": "2024-01-20T14:00:00",
-    "location": "体育馆"
-  }
-  ```
-
-#### 2. 获取活动列表
-- **URL**: `/api/post`
-- **Method**: `GET`
-
-#### 3. 获取活动详情
-- **URL**: `/api/post/{id}`
-- **Method**: `GET`
-
-#### 4. 获取我的发布
-- **URL**: `/api/post/my/posts`
-- **Method**: `GET`
-- **需要登录**: 是
-
-#### 5. 获取我的报名
-- **URL**: `/api/post/my/registrations`
-- **Method**: `GET`
-- **需要登录**: 是
-
-#### 6. 删除活动
-- **URL**: `/api/post/{id}`
-- **Method**: `DELETE`
-- **需要登录**: 是
-- **权限**: 只能删除自己发布的活动
-
-### 报名相关 API
-
-#### 1. 报名活动
-- **URL**: `/api/post/registration/{postId}`
-- **Method**: `POST`
-- **需要登录**: 是
-
-#### 2. 取消报名
-- **URL**: `/api/post/registration/{postId}`
-- **Method**: `DELETE`
-- **需要登录**: 是
+### 运行测试
+```bash
+mvn test  # 35 个测试
+```
 
 ## 活动类型
 
-- `BALL_GAME` - 打球
-- `BOARD_GAME` - 桌游
-- `PET_SOCIAL` - 宠物社交
-- `GROUP_ACTIVITY` - 拼活动
-- `STUDY_GROUP` - 学习小组
+| 类型 | 图标 | 说明 |
+|------|------|------|
+| BALL_GAME | 🏀 | 打球 |
+| BOARD_GAME | 🎲 | 桌游 |
+| PET_SOCIAL | 🐾 | 宠物社交 |
+| GROUP_ACTIVITY | 🎉 | 拼活动 |
+| STUDY_GROUP | 📚 | 学习小组 |
 
 ## 项目结构
 
 ```
 greengrassland/
-├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/greengrassland/
-│   │   │       ├── config/          # 配置类
-│   │   │       ├── controller/      # 控制器
-│   │   │       ├── dto/             # 数据传输对象
-│   │   │       ├── entity/          # 实体类
-│   │   │       ├── exception/       # 异常处理
-│   │   │       ├── repository/      # 数据访问层
-│   │   │       ├── service/         # 业务逻辑层
-│   │   │       └── GreenGrasslandApplication.java
-│   │   └── resources/
-│   │       ├── application.yml      # 应用配置
-│   │       ├── schema.sql           # 数据库初始化脚本
-│   │       └── static/
-│   │           └── index.html       # 前端页面
-│   └── test/                        # 测试代码
-├── pom.xml                          # Maven配置
-└── README.md                        # 项目说明
+├── src/main/java/com/greengrassland/
+│   ├── config/       # JWT, WebSocket, Redis, CSRF, 限流, 跨域
+│   ├── controller/   # 15 个控制器, 75+ API
+│   ├── dto/          # 数据传输对象
+│   ├── entity/       # JPA 实体 (14个)
+│   ├── repository/   # Spring Data JPA (14个)
+│   ├── service/      # 业务逻辑
+│   ├── component/    # 定时任务
+│   └── exception/    # 全局异常处理
+├── src/main/resources/
+│   ├── db/migration/ # Flyway 迁移脚本
+│   ├── static/       # 前端 (HTML + CSS + JS)
+│   └── application.yml
+├── src/test/         # 35 个测试 (Service + Repository + Controller)
+├── docker-compose.yml
+├── Dockerfile
+├── .github/workflows/ci.yml
+└── TODO.md
 ```
-
-## 开发规范
-
-- 使用 DTO 隔离实体
-- 使用统一返回体 `ApiResponse`
-- 统一异常处理 `@ControllerAdvice`
-- 使用 `Optional` 规范空值处理
-- 使用事务 `@Transactional`
-- Repository 不写业务逻辑
-- Service 处理所有业务规则
-- 密码使用 BCrypt 加密
-- Session 中只存储 userId
-
-## 注意事项
-
-1. **数据库配置**：确保 MySQL 服务已启动，并正确配置 `application.yml` 中的数据库连接信息。
-
-2. **端口占用**：默认端口为 8080，如果被占用，可在 `application.yml` 中修改 `server.port`。
-
-3. **Session 管理**：应用使用 Session 进行用户认证，前端需要支持 Cookie。
-
-4. **跨域问题**：当前已配置跨域支持，但生产环境建议配置具体的域名。
-
-## 常见问题
-
-### Q: 启动失败，提示数据库连接错误？
-A: 检查 MySQL 服务是否启动，以及 `application.yml` 中的数据库配置是否正确。
-
-### Q: 前端页面无法访问？
-A: 确保访问地址为 `http://localhost:8080/index.html` 或 `http://localhost:8080/`。
-
-### Q: 登录后无法保持登录状态？
-A: 检查浏览器 Cookie 设置，确保允许 Cookie。
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题，请提交 Issue。

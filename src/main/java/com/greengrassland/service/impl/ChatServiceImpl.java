@@ -11,6 +11,7 @@ import com.greengrassland.repository.ChatRoomRepository;
 import com.greengrassland.repository.UserRepository;
 import com.greengrassland.service.ChatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatRepository chatRepository;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     public List<ChatRoomDTO> getChatRooms(Long userId) {
@@ -89,13 +91,18 @@ public class ChatServiceImpl implements ChatService {
         room.setLastMessageTime(chat.getCreateTime());
         chatRoomRepository.save(room);
 
-        return convertToChatDTO(chat);
+        ChatDTO dto = convertToChatDTO(chat);
+        messagingTemplate.convertAndSend("/topic/chat.room." + room.getId(), dto);
+
+        return dto;
     }
 
     @Override
     @Transactional
     public void markAsRead(Long roomId, Long userId) {
         chatRepository.markAsReadByRoomIdAndReceiverId(roomId, userId);
+        messagingTemplate.convertAndSend("/topic/chat.read." + roomId,
+                java.util.Map.of("userId", userId, "roomId", roomId));
     }
 
     @Override

@@ -1,27 +1,31 @@
 package com.greengrassland.controller;
 
+import com.greengrassland.config.JwtUtil;
 import com.greengrassland.config.SessionConfig;
 import com.greengrassland.dto.ApiResponse;
 import com.greengrassland.dto.UserDTO;
 import com.greengrassland.dto.UserLoginDTO;
 import com.greengrassland.dto.UserRegisterDTO;
+import com.greengrassland.dto.UserPasswordDTO;
 import com.greengrassland.dto.UserUpdateDTO;
 import com.greengrassland.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * 用户控制器
+ */
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
-@Tag(name = "用户管理", description = "注册、登录、密码修改、个人资料")
 public class UserController {
 
     private final UserService userService;
+    private final JwtUtil jwtUtil;
 
     /**
      * 用户注册
@@ -43,7 +47,10 @@ public class UserController {
         // 将用户ID存入Session
         HttpSession session = request.getSession(true);
         session.setAttribute(SessionConfig.SESSION_USER_ID, userDTO.getId());
-        
+
+        // 生成JWT token
+        userDTO.setToken(jwtUtil.generateToken(userDTO.getId()));
+
         return ResponseEntity.ok(ApiResponse.success(userDTO));
     }
 
@@ -98,16 +105,27 @@ public class UserController {
     }
 
     /**
-     * 重置密码（通过用户名+邮箱验证，无需邮件）
+     * 修改密码
      */
+    @PostMapping("/password")
+    public ResponseEntity<ApiResponse<?>> updatePassword(@Valid @RequestBody UserPasswordDTO passwordDTO,
+                                                          HttpServletRequest request) {
+        Long userId = SessionConfig.getCurrentUserId(request);
+        if (userId == null) {
+            return ResponseEntity.ok(ApiResponse.error("请先登录"));
+        }
+
+        userService.updatePassword(userId, passwordDTO);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     @PostMapping("/reset-password")
     public ResponseEntity<ApiResponse<?>> resetPassword(@RequestBody java.util.Map<String, String> body) {
         String username = body.get("username");
         String email = body.get("email");
         String newPassword = body.get("newPassword");
-        if (username == null || email == null || newPassword == null) {
+        if (username == null || email == null || newPassword == null)
             return ResponseEntity.ok(ApiResponse.error("请填写完整信息"));
-        }
         userService.resetPassword(username, email, newPassword);
         return ResponseEntity.ok(ApiResponse.success());
     }

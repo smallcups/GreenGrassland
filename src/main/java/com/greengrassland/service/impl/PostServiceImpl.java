@@ -4,6 +4,7 @@ import com.greengrassland.dto.PostCreateDTO;
 import com.greengrassland.dto.PostDTO;
 import com.greengrassland.dto.PostSearchDTO;
 import com.greengrassland.entity.Post;
+import com.greengrassland.entity.PostStatus;
 import com.greengrassland.entity.PostType;
 import com.greengrassland.entity.User;
 import com.greengrassland.exception.BusinessException;
@@ -19,6 +20,8 @@ import com.greengrassland.service.PostLikeService;
 import com.greengrassland.service.PostService;
 import com.greengrassland.service.SensitiveWordFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +33,7 @@ import com.greengrassland.dto.PageDTO;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +57,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"postList"}, allEntries = true)
     public PostDTO createPost(Long userId, PostCreateDTO createDTO) {
         String matched = sensitiveWordFilter.findFirstMatch(createDTO.getTitle());
         if (matched != null) throw new BusinessException("标题包含敏感词");
@@ -69,7 +74,11 @@ public class PostServiceImpl implements PostService {
                 .maxPeople(createDTO.getMaxPeople())
                 .activityTime(createDTO.getActivityTime())
                 .location(createDTO.getLocation())
+                .latitude(createDTO.getLatitude())
+                .longitude(createDTO.getLongitude())
                 .images(createDTO.getImages())
+                .approvalMode(createDTO.getApprovalMode() != null ? createDTO.getApprovalMode() : false)
+                .isSeries(createDTO.getIsSeries() != null ? createDTO.getIsSeries() : false)
                 .build();
 
         post = postRepository.save(post);
@@ -78,6 +87,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Cacheable(value = "postList", key = "'all'", unless = "#result.isEmpty()")
     public List<PostDTO> getPostList(Long currentUserId) {
         List<Post> posts = postRepository.findAllByOrderByCreateTimeDesc();
         return batchConvertToDTOs(posts, currentUserId, false);
@@ -110,27 +120,72 @@ public class PostServiceImpl implements PostService {
             }
         }
 
-        Page<Post> postPage;
-        boolean hasFilter = keyword != null || location != null || postType != null;
-        if (hasFilter) {
-            postPage = postRepository.searchPostsWithLocation(keyword, location, postType, pageable);
+        List<PostDTO> dtos;
+        long totalElements;
+        int totalPages;
+        boolean hasNext;
+        boolean hasPrevious;
+        int pageNum;
+
+        // 距离搜索
+        if (searchDTO.getUserLat() != null && searchDTO.getUserLng() != null) {
+            double maxDist = searchDTO.getMaxDistance() != null ? searchDTO.getMaxDistance() : 50.0;
+            org.springframework.data.domain.Pageable plainPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+            Page<Object[]> distPage = postRepository.searchPostsByDistance(
+                    searchDTO.getUserLat(), searchDTO.getUserLng(), maxDist,
+                    keyword, postType != null ? postType.name() : null, location, plainPageable);
+            List<Object[]> rows = distPage.getContent();
+            List<Long> ids = new ArrayList<>();
+            Map<Long, Double> distanceMap = new LinkedHashMap<>();
+            for (Object[] row : rows) {
+                Long postId = ((Number) row[0]).longValue();
+                Double distance = ((Number) row[1]).doubleValue();
+                ids.add(postId);
+                distanceMap.put(postId, Math.round(distance * 10.0) / 10.0);
+            }
+            List<Post> posts = ids.isEmpty() ? List.of() : postRepository.findAllById(ids);
+            // 保持距离排序
+            Map<Long, Post> postMap = new HashMap<>();
+            for (Post p : posts) postMap.put(p.getId(), p);
+            List<Post> orderedPosts = ids.stream().map(postMap::get).filter(p -> p != null).collect(Collectors.toList());
+            dtos = batchConvertToDTOs(orderedPosts, currentUserId, false);
+            for (int i = 0; i < orderedPosts.size(); i++) {
+                dtos.get(i).setDistance(distanceMap.get(orderedPosts.get(i).getId()));
+            }
+            totalElements = distPage.getTotalElements();
+            totalPages = distPage.getTotalPages();
+            hasNext = distPage.hasNext();
+            hasPrevious = distPage.hasPrevious();
+            pageNum = distPage.getNumber() + 1;
         } else {
-            postPage = postRepository.findAll(pageable);
+            Page<Post> postPage;
+            boolean hasFilter = keyword != null || location != null || postType != null;
+            if (hasFilter) {
+                postPage = postRepository.searchPostsWithLocation(keyword, location, postType, pageable);
+            } else {
+                postPage = postRepository.findAll(pageable);
+            }
+            dtos = batchConvertToDTOs(postPage.getContent(), currentUserId, false);
+            totalElements = postPage.getTotalElements();
+            totalPages = postPage.getTotalPages();
+            hasNext = postPage.hasNext();
+            hasPrevious = postPage.hasPrevious();
+            pageNum = postPage.getNumber() + 1;
         }
 
-        List<PostDTO> dtos = batchConvertToDTOs(postPage.getContent(), currentUserId, false);
         return PageDTO.<PostDTO>builder()
                 .content(dtos)
-                .page(postPage.getNumber() + 1)
-                .pageSize(postPage.getSize())
-                .totalElements(postPage.getTotalElements())
-                .totalPages(postPage.getTotalPages())
-                .hasNext(postPage.hasNext())
-                .hasPrevious(postPage.hasPrevious())
+                .page(pageNum)
+                .pageSize(pageable.getPageSize())
+                .totalElements(totalElements)
+                .totalPages(totalPages)
+                .hasNext(hasNext)
+                .hasPrevious(hasPrevious)
                 .build();
     }
 
     @Override
+    @Cacheable(value = "postDetail", key = "#postId", unless = "#result == null")
     public PostDTO getPostDetail(Long postId, Long currentUserId) {
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isEmpty()) {
@@ -163,6 +218,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"postList", "postDetail"}, key = "#postId")
     public void deletePost(Long postId, Long userId) {
         Optional<Post> postOpt = postRepository.findById(postId);
         if (postOpt.isEmpty()) {
@@ -179,7 +235,34 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public List<PostDTO> recommendPosts(Long userId) {
+        List<Post> posts;
+        if (userId != null) {
+            List<Long> registeredPostIds = registrationRepository.findPostIdsByUserId(userId);
+            if (!registeredPostIds.isEmpty()) {
+                List<Post> registeredPosts = postRepository.findAllById(registeredPostIds);
+                List<PostType> preferredTypes = registeredPosts.stream()
+                        .map(Post::getType).distinct().collect(Collectors.toList());
+                posts = postRepository.findAll().stream()
+                        .filter(p -> preferredTypes.contains(p.getType()))
+                        .filter(p -> p.getStatus() == PostStatus.RECRUITING)
+                        .limit(6).collect(Collectors.toList());
+            } else {
+                posts = postRepository.findAllByOrderByCreateTimeDesc().stream()
+                        .filter(p -> p.getStatus() == PostStatus.RECRUITING)
+                        .limit(6).collect(Collectors.toList());
+            }
+        } else {
+            posts = postRepository.findAllByOrderByCreateTimeDesc().stream()
+                    .filter(p -> p.getStatus() == PostStatus.RECRUITING)
+                    .limit(6).collect(Collectors.toList());
+        }
+        return batchConvertToDTOs(posts, userId, false);
+    }
+
+    @Override
     @Transactional
+    @CacheEvict(value = {"postList", "postDetail"}, key = "#postId")
     public void cancelPost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new BusinessException("活动不存在"));
@@ -204,6 +287,12 @@ public class PostServiceImpl implements PostService {
         List<Long> userIds = posts.stream().map(Post::getUserId).distinct().collect(Collectors.toList());
         Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
+
+        // 批量加载作者发布数
+        Map<Long, Long> authorPostCountMap = new HashMap<>();
+        for (Long uid : userIds) {
+            authorPostCountMap.put(uid, postRepository.countByUserId(uid));
+        }
 
         // 批量加载报名数
         Map<Long, Long> registrationCountMap = new HashMap<>();
@@ -260,7 +349,7 @@ public class PostServiceImpl implements PostService {
                 .map(post -> {
                     boolean isRegistered = allRegistered || (currentUserId != null && registeredPostIds.contains(post.getId()));
                     return convertToDTOWithMaps(post, currentUserId, isRegistered, false,
-                            userMap, registrationCountMap, likeCountMap, likedPostIds, favoriteCountMap, favoritedPostIds, commentCountMap);
+                            userMap, registrationCountMap, likeCountMap, likedPostIds, favoriteCountMap, favoritedPostIds, commentCountMap, authorPostCountMap);
                 })
                 .collect(Collectors.toList());
     }
@@ -289,6 +378,7 @@ public class PostServiceImpl implements PostService {
                 .username(username)
                 .nickname(nickname)
                 .userAvatar(userAvatar)
+                .authorPostCount(0L)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .type(post.getType())
@@ -297,6 +387,10 @@ public class PostServiceImpl implements PostService {
                 .activityTime(post.getActivityTime())
                 .location(post.getLocation())
                 .images(post.getImages())
+                .latitude(post.getLatitude())
+                .longitude(post.getLongitude())
+                .approvalMode(post.getApprovalMode())
+                .isSeries(post.getIsSeries())
                 .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())
@@ -320,7 +414,7 @@ public class PostServiceImpl implements PostService {
                                           Map<Long, User> userMap, Map<Long, Long> registrationCountMap,
                                           Map<Long, Long> likeCountMap, Set<Long> likedPostIds,
                                           Map<Long, Long> favoriteCountMap, Set<Long> favoritedPostIds,
-                                          Map<Long, Long> commentCountMap) {
+                                          Map<Long, Long> commentCountMap, Map<Long, Long> authorPostCountMap) {
         User user = userMap.get(post.getUserId());
         String username = user != null ? user.getUsername() : "未知用户";
         String nickname = user != null ? (user.getNickname() != null ? user.getNickname() : user.getUsername()) : "未知用户";
@@ -342,6 +436,7 @@ public class PostServiceImpl implements PostService {
                 .username(username)
                 .nickname(nickname)
                 .userAvatar(userAvatar)
+                .authorPostCount(0L)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .type(post.getType())
@@ -350,6 +445,10 @@ public class PostServiceImpl implements PostService {
                 .activityTime(post.getActivityTime())
                 .location(post.getLocation())
                 .images(post.getImages())
+                .latitude(post.getLatitude())
+                .longitude(post.getLongitude())
+                .approvalMode(post.getApprovalMode())
+                .isSeries(post.getIsSeries())
                 .status(post.getStatus())
                 .createTime(post.getCreateTime())
                 .updateTime(post.getUpdateTime())

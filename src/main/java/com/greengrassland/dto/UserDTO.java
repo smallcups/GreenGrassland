@@ -21,5 +21,13 @@ public class UserDTO {
     private String nickname;
     private String email;
     private String avatar;
+    private String bio;
+    private String interestTags;
+    private Long postCount;
+    private Long likeCount;
+    private Long favoriteCount;
+    private Long followerCount;
+    private Long followingCount;
+    private String token;
     private LocalDateTime createTime;
 }

@@ -46,4 +46,9 @@ public interface UserFollowRepository extends JpaRepository<UserFollow, Long> {
      * 统计关注数
      */
     long countByFollowerId(Long followerId);
+
+    /**
+     * 查找用户关注的所有人
+     */
+    List<UserFollow> findByFollowerId(Long followerId);
 }

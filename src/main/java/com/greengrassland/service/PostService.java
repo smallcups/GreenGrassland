@@ -50,4 +50,9 @@ public interface PostService {
      * 取消活动
      */
     void cancelPost(Long postId, Long userId);
+
+    /**
+     * 智能推荐（基于用户行为或热门）
+     */
+    List<PostDTO> recommendPosts(Long userId);
 }
