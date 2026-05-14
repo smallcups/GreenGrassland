@@ -39,4 +39,9 @@ public interface UserService {
      * 更新用户资料
      */
     UserDTO updateProfile(Long userId, UserUpdateDTO updateDTO);
+
+    /**
+     * 重置密码（通过用户名+邮箱验证）
+     */
+    void resetPassword(String username, String email, String newPassword);
 }

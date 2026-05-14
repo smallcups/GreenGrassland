@@ -122,9 +122,24 @@ public class UserServiceImpl implements UserService {
         return convertToDTO(user);
     }
 
-    /**
-     * 转换为DTO
-     */
+    @Override
+    @Transactional
+    public void resetPassword(String username, String email, String newPassword) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            throw new BusinessException("用户名不存在");
+        }
+        User user = userOpt.get();
+        if (user.getEmail() == null || !user.getEmail().equalsIgnoreCase(email.trim())) {
+            throw new BusinessException("邮箱不匹配");
+        }
+        if (newPassword == null || newPassword.length() < 6) {
+            throw new BusinessException("新密码至少6位");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
     private UserDTO convertToDTO(User user) {
         return UserDTO.builder()
                 .id(user.getId())

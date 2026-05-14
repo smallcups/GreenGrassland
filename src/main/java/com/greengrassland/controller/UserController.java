@@ -96,4 +96,19 @@ public class UserController {
         UserDTO userDTO = userService.updateProfile(userId, updateDTO);
         return ResponseEntity.ok(ApiResponse.success(userDTO));
     }
+
+    /**
+     * 重置密码（通过用户名+邮箱验证，无需邮件）
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<?>> resetPassword(@RequestBody java.util.Map<String, String> body) {
+        String username = body.get("username");
+        String email = body.get("email");
+        String newPassword = body.get("newPassword");
+        if (username == null || email == null || newPassword == null) {
+            return ResponseEntity.ok(ApiResponse.error("请填写完整信息"));
+        }
+        userService.resetPassword(username, email, newPassword);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 }
