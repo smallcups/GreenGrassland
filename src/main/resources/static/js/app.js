@@ -763,7 +763,7 @@
         function renderPosts(posts, containerId, showDelete = false) {
             const container = document.getElementById(containerId);
             if (!posts || posts.length === 0) {
-                container.innerHTML = '<p style=\"text-align:center;padding:40px;color:var(--text-muted);\">📭 暂无活动</p>';
+                container.innerHTML = '<div style="text-align:center;padding:60px 20px;"><div style="font-size:64px;margin-bottom:16px;">🌿</div><div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;">还没有活动</div><div style="font-size:14px;color:var(--text-secondary);margin-bottom:20px;">来发起第一个同好活动吧！</div><button class="btn btn-primary" onclick="switchTab(\'create\')" style="font-size:15px;">✨ 发布活动</button></div>';
                 return;
             }
 
@@ -810,9 +810,10 @@
                     imagesHTML = '<div class="post-images-grid"><img data-src="' + imageList[0] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><img data-src="' + imageList[1] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><img data-src="' + imageList[2] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><div style="position: relative;"><img data-src="' + imageList[3] + '" alt="图片" onclick="viewPostDetail(' + post.id + ')" loading="lazy"><div class="post-images-count">+' + (imageCount - 4) + '</div></div></div>';
                 }
 
+                var cardAccentColors = { 'BALL_GAME': '#f97316', 'BOARD_GAME': '#8b5cf6', 'PET_SOCIAL': '#ec4899', 'GROUP_ACTIVITY': '#0d9488', 'STUDY_GROUP': '#3b82f6' };
+                var cardAccent = cardAccentColors[post.type] || 'var(--primary)';
                 return `
-                    <div class="post-card" onclick="viewPostDetail(${post.id})">
-                        <!-- 用户信息 -->
+                    <div class="post-card" style="border-top: 3px solid ${cardAccent};" onclick="viewPostDetail(${post.id})">
                         <div class="post-header" onclick="event.stopPropagation()">
                             <img src="${userAvatar}" alt="头像" class="post-author-avatar" onerror="this.src='/images/default-avatar.svg'" onclick="viewUserProfile(${post.userId}); event.stopPropagation();">
                             <div class="post-author-info">
